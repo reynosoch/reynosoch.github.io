@@ -4,7 +4,14 @@ import { fileURLToPath } from 'node:url';
 import { tools } from '../shared/catalog.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 const root = resolve(fileURLToPath(new URL('../',import.meta.url)));
+const vendors=JSON.parse(await readFile(resolve(root,'transcribe/vendor/manifest.json'),'utf8'));
+for(const vendor of vendors) {
+  const bytes=await readFile(resolve(root,'transcribe/vendor',vendor.file));
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),vendor.sha256,`Lector incompleto o modificado: ${vendor.file}`);
+  for(const license of vendor.licenses) await access(resolve(root,'transcribe/vendor',license));
+}
 let checked = 0;
 async function checkReference(source, reference) {
   if (!reference.startsWith('./') && !reference.startsWith('../')) return;
@@ -26,11 +33,11 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
     }
   }
 }
-for (const directory of ['drop','transcribe','shared']) {
+for (const directory of ['drop','transcribe','transcribe/vendor','shared']) {
   for (const name of await readdir(resolve(root,directory))) {
     if (!/\.(?:m?js)$/.test(name)) continue;
       const source=resolve(root,directory,name), content=await readFile(source,'utf8');
-    if(directory==='transcribe') execFileSync(process.execPath,['--check',source]);
+    if(directory.startsWith('transcribe')) execFileSync(process.execPath,['--check',source]);
     for(const match of content.matchAll(/(?:from\s+|import\s*\(|new URL\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g)) await checkReference(source,match[2]);
   }
 }

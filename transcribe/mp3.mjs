@@ -1,7 +1,7 @@
 const registered=new WeakSet();
 export async function registerMp3Decoder(media,decoderModule) {
   if(registered.has(media)) return;
-  const {MPEGDecoder}=decoderModule||await import('https://cdn.jsdelivr.net/npm/mpg123-decoder@1.0.3/+esm');
+  const {MPEGDecoder}=decoderModule||await import('./vendor/mpg123-decoder-1.0.3.min.mjs');
   class Mp3Decoder extends media.CustomAudioDecoder {
     static supports(codec) {return codec==='mp3';}
     async init() {this.decoder=new MPEGDecoder();await this.decoder.ready;this.time=null;}

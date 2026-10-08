@@ -1,6 +1,6 @@
 import { stats, timestamp, toSrt } from './audio.mjs';
-import { audioPlan, windowAt, estimatedRemaining, fileIdentity, SESSION_VERSION, validateCheckpoint } from './session.mjs';
-import { openAudioSource, resampleWindow } from './media.mjs';
+import { audioPlan, windowAt, estimatedRemaining, fileIdentity, SESSION_VERSION, validateCheckpoint } from './session.mjs?v=2.0.1';
+import { openAudioSource, resampleWindow } from './media.mjs?v=2.0.1';
 import { readRecovery, saveRecovery, deleteRecovery } from './storage.mjs';
 const $ = id => document.getElementById(id);
 let mode = 'audio', file = null, objectUrl = null, busy = false, asrWorker = null, ocrWorker = null;
@@ -167,7 +167,7 @@ async function requestConsent({resume=false,ocr=false,compatibility=false,mp3=fa
   $('consent-plan').textContent=mp3?'El navegador no decodifica esta pista MP3. Puedes autorizar un lector WASM adicional para leerla por partes, sin cargar toda la grabación en memoria.':compatibility?'Esta pista necesita lectura completa en memoria. Solo se permite hasta 3 minutos y 50 MB. No cambia tu archivo.':ocr?'Se descargará el lector OCR y los idiomas seleccionados para extraer texto localmente.':`${resume?'Continuar':'Procesar'} ${known?timestamp(seconds).slice(0,8):'audio de duración por confirmar'} · ${plan?plan.count+' fragmentos · Whisper '+plan.model:selected.model==='auto'?'automático: tiny hasta 1 minuto; base para audio más largo':'Whisper '+selected.model}. CPU y tiempo crecen con la duración.`;
   const model=plan?.model||selected.model;
   const size=selected.device==='webgpu'?({tiny:'120',base:'210',small:'600'}[model]||'120–210'):({tiny:'45',base:'80',small:'250'}[model]||'45–80');
-  $('consent-resources').textContent=mp3?'Se descargará mpg123-decoder desde jsDelivr. Funciona localmente, también para MP3 largos. No se cambia el modelo ni se sube el audio.':ocr?'Tesseract y datos de idiomas requieren una descarga inicial y memoria.':compatibility?'Autoriza una decodificación completa de este clip corto.':`${selected.device==='webgpu'?'GPU experimental':'CPU compatible'} · descarga de modelo aproximada: ${size} MB más librerías (Mediabunny, Hash WASM y Transformers.js). Puede estar en caché. La memoria de ejecución es mayor que la descarga. Una hora puede tardar bastante; se mostrará una estimación después del primer fragmento.`;
+  $('consent-resources').textContent=mp3?'Se cargará mpg123-decoder desde esta misma página. Funciona localmente, también para MP3 largos. No se cambia el modelo ni se sube el audio.':ocr?'Tesseract y datos de idiomas requieren una descarga inicial y memoria.':compatibility?'Autoriza una decodificación completa de este clip corto.':`${selected.device==='webgpu'?'GPU experimental':'CPU compatible'} · descarga de modelo aproximada: ${size} MB más librerías (Mediabunny, Hash WASM y Transformers.js). Puede estar en caché. La memoria de ejecución es mayor que la descarga. Una hora puede tardar bastante; se mostrará una estimación después del primer fragmento.`;
   $('save-choice').hidden=ocr||compatibility||mp3; $('wake-choice').hidden=ocr||compatibility||mp3;
   $('consent-replace').hidden=resume||!$('result').value.trim()||compatibility||mp3;
   const dialog=$('consent'); consentPending=true; updateButtons();
@@ -184,7 +184,7 @@ async function requestConsent({resume=false,ocr=false,compatibility=false,mp3=fa
 }
 function workerRequest(message,id,transfer=[]) {
   return new Promise((resolve,reject)=>{
-    if(!asrWorker) asrWorker=new Worker(new URL('./asr-worker.mjs?v=2.0.0',import.meta.url),{type:'module'});
+    if(!asrWorker) asrWorker=new Worker(new URL('./asr-worker.mjs?v=2.0.1',import.meta.url),{type:'module'});
     pendingWorker={reject};
     asrWorker.onmessage=({data})=>{
       if(id!==operation) return;

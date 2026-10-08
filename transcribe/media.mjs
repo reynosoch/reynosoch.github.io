@@ -1,5 +1,6 @@
 import { mixChannels, SAMPLE_RATE } from './audio.mjs';
-export const MEDIA_URL='https://cdn.jsdelivr.net/npm/mediabunny@1.61.3/dist/bundles/mediabunny.min.mjs';
+// Keep the reader on Pages: a blocked CDN must not prevent opening local audio.
+export const MEDIA_URL='./vendor/mediabunny-1.61.3.min.mjs';
 export async function openAudioSource(file,{library,allowCompatibility=false,allowMp3=false,signal,previewDuration}={}) {
   const media=library||await import(MEDIA_URL);
   if(signal?.aborted) throw new DOMException('Cancelado','AbortError');
@@ -13,7 +14,7 @@ export async function openAudioSource(file,{library,allowCompatibility=false,all
     if(channels<1||channels>8||rate<8000||rate>192000) throw new Error('Pista con canales o frecuencia no admitidos. Convierte a WAV o MP3.');
     if(!await track.canDecode() && await track.getCodec()==='mp3') {
       if(allowMp3) {
-        const {registerMp3Decoder}=await import('./mp3.mjs');
+        const {registerMp3Decoder}=await import('./mp3.mjs?v=2.0.1');
         await registerMp3Decoder(media);
       } else {const error=new Error('Esta pista MP3 necesita un lector adicional por partes.');error.mp3=true;throw error;}
     }

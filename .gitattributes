@@ -1,0 +1,2 @@
+# Preserve embedded WASM/yEnc and upstream bundles byte-for-byte on every OS.
+transcribe/vendor/*.min.mjs -text -diff

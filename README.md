@@ -61,7 +61,7 @@ Inspect, Diff y Context se muestran en Uso diario; las secciones Datos y Desarro
 - **[Drop](https://reynosoch.github.io/drop/)**: transferencia entre dispositivos de texto, código, capturas, fotos, Excel y documentos. Conserva salas de cuatro números, QR/escáner de cámara, WebRTC/PeerJS, Ctrl+V, bloques grandes como TXT, SHA-256, límites, PWA y sesión local. [Documentación de Drop](drop/README.md).
 - **[Transcribe](https://reynosoch.github.io/transcribe/)**: voz de audio/micrófono e imágenes/capturas a texto con Whisper y Tesseract. Conserva mejora para voz baja, selección de canal, procesamiento local, edición, TXT y SRT. [Documentación de Transcribe](transcribe/README.md).
 
-Drop se migró desde `reynosoch/reynoso-drop` (`d74c31e`). El repositorio antiguo es respaldo; el código vigente se desarrolla aquí. La versión **1.7.2** actualiza título, navegación de regreso y caché PWA, manteniendo protocolo, sesiones y motores. Transcribe conserva OCR y controles de audio y ahora incorpora lectura por ventanas, texto parcial, pausa/reanudación, modelos según duración y recuperación local con permiso. [Audio largo · v2.0](transcribe/README.md).
+Drop se migró desde `reynosoch/reynoso-drop` (`d74c31e`). El repositorio antiguo es respaldo; el código vigente se desarrolla aquí. La versión **1.7.2** actualiza título, navegación de regreso y caché PWA, manteniendo protocolo, sesiones y motores. Transcribe conserva OCR y controles de audio y ahora incorpora lectura por ventanas, texto parcial, pausa/reanudación, modelos según duración y recuperación local con permiso. [Audio largo · v2.0.1](transcribe/README.md). Los lectores de audio, MP3 y hash se alojan en Pages para que un bloqueo de jsDelivr no impida abrir el archivo; los motores y modelos conservan sus descargas externas autorizadas.
 
 ## Estructura y generación
 
@@ -116,7 +116,7 @@ Un futuro intercambio deberá definirse como contrato explícito de payload/vers
 
 HTML/CSS/JS nativos, sin frameworks ni dependencias nuevas. Glass con fondo denso, reflejo/borde sutil, blur real y fallback opaco; fondos sin animación y transiciones de 150–160 ms. Layouts para laptop, desktop, iPad horizontal/vertical y móvil con targets táctiles, navegación sin hover obligatorio, `prefers-reduced-motion` y `prefers-reduced-transparency`.
 
-Validación de esta iteración: 55 pruebas funcionales, comprobaciones DOM de búsqueda/filtros y Transcribe, títulos/enlaces de las 23 páginas y revisión estática de breakpoints. No se realizó una revisión visual en navegador ni en un iPad físico; esa comprobación de diseño y uso real sigue pendiente.
+Validación actual: 58 pruebas funcionales, comprobaciones DOM de búsqueda/filtros y Transcribe, títulos/enlaces de las 23 páginas y revisión estática de breakpoints. No se realizó una revisión visual en navegador ni en un iPad físico; esa comprobación de diseño y uso real sigue pendiente.
 
 ## Check, build y GitHub Pages
 

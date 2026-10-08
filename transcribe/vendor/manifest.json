@@ -1,0 +1,28 @@
+[
+  {
+    "file": "mediabunny-1.61.3.min.mjs",
+    "source": "mediabunny@1.61.3/dist/bundles/mediabunny.min.mjs",
+    "sha256": "d7b3a90e82158a7022729cbd4f861daf73cbb4f69d23349d2aefc9c8281cf70c",
+    "licenses": [
+      "mediabunny.LICENSE"
+    ]
+  },
+  {
+    "file": "hash-wasm-4.12.0.min.mjs",
+    "source": "hash-wasm@4.12.0/dist/index.esm.min.js",
+    "sha256": "81ad292c6823ea75efef9afe5cbedc5c6c5a85113b32a97b74f5353097a95211",
+    "licenses": [
+      "hash-wasm.LICENSE"
+    ]
+  },
+  {
+    "file": "mpg123-decoder-1.0.3.min.mjs",
+    "source": "mpg123-decoder@1.0.3/src/MPEGDecoder.js",
+    "sha256": "43b5fb2a2f0a230532138e948e20685d671a24fd4be745ce825e5d32d59e2534",
+    "licenses": [
+      "wasm-audio-decoders.LICENSE",
+      "mpg123.LICENSE",
+      "puff.LICENSE"
+    ]
+  }
+]

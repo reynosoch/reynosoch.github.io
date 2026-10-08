@@ -1,6 +1,6 @@
 # Reynoso Transcribe
 
-Forma parte de **Reynoso Toolchain**. La pestaña se titula **Transcribe · Reynoso Toolchain** y el header **← Toolchain** regresa siempre a [la portada](https://reynosoch.github.io/). El estilo del header usa `../shared/toolchain-nav.css` y solo da estilo a la navegación compartida. Esta versión 2.0 incorpora el flujo de audio largo descrito abajo.
+Forma parte de **Reynoso Toolchain**. La pestaña se titula **Transcribe · Reynoso Toolchain** y el header **← Toolchain** regresa siempre a [la portada](https://reynosoch.github.io/). El estilo del header usa `../shared/toolchain-nav.css` y solo da estilo a la navegación compartida. Esta versión 2.0.1 incorpora el flujo de audio largo descrito abajo.
 
 Página estática publicada en **https://reynosoch.github.io/transcribe/**. Vive en `transcribe/` dentro del repositorio `reynosoch/reynosoch.github.io`, junto con Drop en `drop/`. La raíz ahora es el [centro de herramientas](https://reynosoch.github.io/). El despliegue de Pages ya configurado publica los cambios de `main`.
 
@@ -19,7 +19,7 @@ Página estática publicada en **https://reynosoch.github.io/transcribe/**. Vive
 - **Hash WASM 4.12.0** verifica SHA-256 del archivo completo en bloques de 2 MiB, sin cargarlo entero, para evitar reanudar con otra grabación.
 - No hay API de pago ni claves. Descarga inicial aproximada de los modelos CPU: tiny ~45 MB, base ~80 MB, small ~250 MB; GPU: ~120 / ~210 / ~600 MB, más runtime y librerías. La memoria de ejecución es mayor. El navegador puede reutilizar caché; no se garantiza que conserve modelos entre sesiones.
 - OCR mediante **Tesseract.js 6.0.1**. Idiomas español e inglés predeterminados; admite francés y portugués. Mejora opcional de escala, contraste e inversión para capturas oscuras; distribución automática, bloque o texto disperso.
-- Archivos e inferencia permanecen en el navegador. Se solicitan dependencias a jsDelivr, modelos a Hugging Face y tipografías a Google Fonts; estas solicitudes requieren conexión, pero no suben archivos. El usuario puede cargar un archivo desde otro servidor con URL, lo que solicita ese archivo a dicho servidor.
+- Archivos e inferencia permanecen en el navegador. Mediabunny, Hash WASM y el lector MP3 se cargan desde esta misma página. Transformers/ONNX y OCR aún solicitan dependencias a jsDelivr, modelos a Hugging Face y tipografías a Google Fonts; estas solicitudes requieren conexión, pero no suben archivos. El usuario puede cargar un archivo desde otro servidor con URL, lo que solicita ese archivo a dicho servidor.
 - Sin recuperación de texto persistente por defecto. **Con autorización expresa** se guarda una única recuperación en IndexedDB `reynoso-transcribe`: texto generado, tokens, marcas, ajustes, hash, nombre y siguiente fragmento. Nunca guarda el audio. Se puede recuperar o borrar desde la página. Al recargar hay que seleccionar el mismo archivo; al continuar se compara el SHA-256 completo. La recuperación se actualiza al terminar cada ventana; si falla el guardado se informa y se recomienda descargar. Los cambios manuales requieren descargar tu versión y deshabilitan Continuar/SRT.
 - La autorización aparece antes de cada inicio/reanudación y OCR. Si la duración real es desconocida o difiere del plan mostrado, se pide otra autorización antes de descargar el modelo. Lectores adicionales y lectura de compatibilidad requieren otra autorización. Mantener pantalla activa solicita Screen Wake Lock solo si se marcó esa opción; es opcional y puede ser revocado/no soportado por el navegador.
 
@@ -43,7 +43,7 @@ La amplificación también sube el ruido. No garantiza recuperar palabras inaudi
 
 ## Desarrollo y validación
 
-Sin instalación para publicar. Archivos HTML, CSS y módulos JS con rutas relativas a `transcribe/`. CDN y versiones fijados en los módulos de los motores. El build conjunto de la raíz empaqueta ambas herramientas; el service worker de Drop está aislado a `/drop/` y no toca las cachés de modelos.
+Sin instalación para publicar. Archivos HTML, CSS y módulos JS con rutas relativas a `transcribe/`. Lectores en `vendor/` y motores externos con versiones fijadas. El build conjunto de la raíz empaqueta ambas herramientas; el service worker de Drop está aislado a `/drop/` y no toca las cachés de modelos.
 
 ```sh
 node --test transcribe/tests/*.test.mjs
@@ -69,4 +69,21 @@ Validación v2.0: 55 pruebas automáticas del repositorio, DOM del flujo real (a
 
 Estas pruebas no equivalen a QA integral en Chrome/Safari/iPad, códecs WebCodecs del dispositivo, WebGPU ni micrófono. No se validó visualmente en navegador. Whisper puede omitir/repetir palabras y sus tiempos son aproximados; las mejoras de memoria/recuperación no convierten la salida en una minuta verificada. Revisar nombres, cifras, decisiones y voces superpuestas antes de avanzar con el proyecto.
 
-Fuentes adicionales: [Mediabunny](https://mediabunny.dev/guide/reading-media-files), [AudioSampleSink](https://mediabunny.dev/api/AudioSampleSink), [MPG123](https://github.com/eshaz/wasm-audio-decoders), [Hash WASM](https://github.com/Daninet/hash-wasm), [WebGPU en Transformers.js](https://huggingface.co/docs/transformers.js/v3.8.1/en/guides/webgpu). Dependencias remotas fijadas e importadas solo tras autorizar el proceso.
+Fuentes adicionales: [Mediabunny](https://mediabunny.dev/guide/reading-media-files), [AudioSampleSink](https://mediabunny.dev/api/AudioSampleSink), [MPG123](https://github.com/eshaz/wasm-audio-decoders), [Hash WASM](https://github.com/Daninet/hash-wasm), [WebGPU en Transformers.js](https://huggingface.co/docs/transformers.js/v3.8.1/en/guides/webgpu). Dependencias locales y remotas fijadas e importadas solo tras autorizar el proceso.
+
+
+## Corrección de carga · v2.0.1
+
+El lector de audio ya no importa Mediabunny directamente desde jsDelivr. Mediabunny 1.61.3, Hash WASM 4.12.0 y mpg123-decoder 1.0.3 viven en `vendor/`, se publican junto con Transcribe y se importan solo después de autorizar el procesamiento. Esto elimina esa dependencia del CDN al abrir, verificar y decodificar el audio. No elimina la conexión necesaria para descargar Whisper/Transformers/ONNX ni OCR. No se cambian los límites, ventanas, permisos ni recuperación. HTML, app, lector y sesión usan la versión 2.0.1 para evitar reutilizar imports anteriores tras el despliegue.
+
+`vendor/manifest.json` fija SHA-256 y licencias de cada bundle. Git conserva los bytes de los bundles mediante `.gitattributes` (el WASM MP3 contiene datos yEnc en strings; no reformatearlos ni convertir saltos de línea). El check comprueba integridad, licencias y sintaxis; el build copia `vendor/` sin instalación. Mediabunny y Hash WASM son copias sin cambios de sus distribuciones npm. MP3 es un bundle ESM del lector síncrono y su WASM integrado, sin el worker opcional ni imports de otros servidores; conserva la API pública `errors`, `channelData` y `samplesDecoded`.
+
+Fuentes y avisos de terceros:
+
+- [Mediabunny 1.61.3](https://www.npmjs.com/package/mediabunny/v/1.61.3), [código fuente](https://github.com/Vanilagy/mediabunny): MPL-2.0, `vendor/mediabunny.LICENSE`.
+- [Hash WASM 4.12.0](https://www.npmjs.com/package/hash-wasm/v/4.12.0), [código fuente](https://github.com/Daninet/hash-wasm): MIT, `vendor/hash-wasm.LICENSE`.
+- [mpg123-decoder 1.0.3](https://www.npmjs.com/package/mpg123-decoder/v/1.0.3), [fuentes y build WASM](https://github.com/eshaz/wasm-audio-decoders): MIT, `vendor/wasm-audio-decoders.LICENSE`; incluye `@wasm-audio-decoders/common@9.0.7` y `simple-yenc@1.0.4`. El [mpg123 integrado](https://github.com/madebr/mpg123) es LGPL-2.1, `vendor/mpg123.LICENSE`. Puff de Mark Adler conserva su aviso en `vendor/puff.LICENSE`; upstream lo adapta para incorporarlo al WASM.
+
+Para reconstruir el bundle MP3 en una carpeta temporal (no es requisito para publicar): instalar las versiones anteriores y `esbuild@0.25.12`, crear un entry `export { default as MPEGDecoder } from './node_modules/mpg123-decoder/src/MPEGDecoder.js';`, compilar con `--bundle --format=esm --platform=browser --target=es2020 --minify --legal-comments=inline`, conservar los avisos y actualizar el hash del manifest tras probar el lector real. No usar el bundle UMD minificado upstream: su resultado renombra `errors`, lo que rompe el contrato del adaptador.
+
+Validación de este arreglo: 58 pruebas del repositorio. Las tres nuevas ejecutan los bundles locales sin CDN: lectura y búsqueda de WAV por ventanas (prohibiendo lectura completa), hash WASM real en varios bloques y contrato/init del WASM MP3. Prueba adicional de MP3 real al inicio, mitad y final con el bundle local. Flujo DOM de la app con imports HTTPS bloqueados: autorización antes de cargar los lectores, rechazo sin descargas, texto parcial, pausa/reanudación, IndexedDB y cancelación; inferencia del worker simulada. Mantiene las limitaciones de QA de navegador/GPU descritas arriba.

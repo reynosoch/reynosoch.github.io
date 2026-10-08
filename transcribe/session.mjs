@@ -21,7 +21,7 @@ export function estimatedRemaining(elapsedSeconds, completedSeconds, totalSecond
   return Math.max(0, elapsedSeconds / completedSeconds * (totalSeconds - completedSeconds));
 }
 export async function fileIdentity(file,{hasher,signal}={}) {
-  if(!hasher) {const {createSHA256}=await import('https://cdn.jsdelivr.net/npm/hash-wasm@4.12.0/+esm');hasher=await createSHA256();}
+  if(!hasher) {const {createSHA256}=await import('./vendor/hash-wasm-4.12.0.min.mjs');hasher=await createSHA256();}
   hasher.init?.();
   for(let offset=0;offset<file.size;offset+=2*1024*1024) {
     if(signal?.aborted) throw new DOMException('Cancelado','AbortError');
