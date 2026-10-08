@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111917">
+  <meta name="description" content="Convierte audio, grabaciones, fotos y capturas en texto. Procesamiento local, sin cuentas ni claves.">
+  <title>Reynoso · Transcribe</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header><a class="brand" href="./"><span class="brand-icon" aria-hidden="true">r.</span>reynoso<span class="brand-divider">/</span><strong>transcribe</strong></a><span class="local-badge"><i></i> Tus archivos se quedan aquí</span></header>
+<main>
+  <section class="intro"><p class="eyebrow">MENOS COPIAR. MÁS HACER.</p><h1>Si se escucha o se lee,<br><span>pásalo a texto.</span></h1><p>Audios, notas de voz, fotos y screenshots.<br class="mobile-break"> Suelta el archivo. Quédate con las palabras.</p><span class="version">01 / TU MESA DE TRABAJO</span></section>
+  <div class="workspace">
+    <section class="source-panel panel" aria-label="Fuentes">
+      <div class="tabs" role="tablist" aria-label="Tipo de archivo"><button id="tab-audio" role="tab" aria-selected="true" aria-controls="audio-controls" class="active">◉ Audio</button><button id="tab-image" role="tab" aria-selected="false" aria-controls="image-controls">▧ Imagen</button></div>
+      <input id="file-input" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.flac,.aac,.aiff,.webm,.mp4" hidden>
+      <button id="dropzone" class="dropzone"><span class="upload-icon" aria-hidden="true">↥</span><strong id="drop-title">Suelta tu audio aquí</strong><span id="drop-description">o haz clic para elegir un archivo</span><small id="formats">M4A · MP3 · WAV · OGG · FLAC · VIDEO</small></button>
+      <p class="paste-hint">También puedes pegar un archivo con <kbd>Ctrl</kbd> + <kbd>V</kbd></p>
+      <div id="file-card" class="file-card" hidden><span id="file-type" class="file-type">A</span><div><strong id="file-name"></strong><small id="file-meta"></small></div><button id="remove-file" class="icon-button" aria-label="Quitar archivo">×</button></div>
+      <audio id="audio-preview" controls hidden preload="metadata"></audio><img id="image-preview" alt="Vista previa de la imagen elegida" hidden>
+      <canvas id="waveform" width="800" height="100" aria-label="Forma de onda del audio" hidden></canvas>
+      <div id="audio-controls" role="tabpanel" aria-labelledby="tab-audio">
+        <div class="source-actions"><button id="record" class="secondary">● Grabar micrófono</button><button id="url-toggle" class="secondary">↗ Desde una URL</button></div>
+        <form id="url-form" hidden><label for="audio-url">Enlace directo a un archivo de audio</label><div class="url-row"><input id="audio-url" type="url" placeholder="https://…/audio.mp3" required><button class="secondary" type="submit">Cargar</button></div><small>El servidor del enlace debe permitir acceso desde esta página (CORS).</small></form>
+        <div class="field-row"><label>Idioma<select id="audio-language"><option value="spanish">Español</option><option value="auto">Detectar idioma</option><option value="english">Inglés</option><option value="french">Francés</option><option value="portuguese">Portugués</option><option value="german">Alemán</option><option value="italian">Italiano</option><option value="japanese">Japonés</option></select></label><label>Modelo<select id="model"><option value="base">Equilibrado · ~80 MB</option><option value="small">Más preciso · ~250 MB</option><option value="tiny">Ligero · ~45 MB</option></select></label></div>
+        <label class="switch-row"><span><strong>Rescatar voz baja</strong><small>Amplifica partes suaves sin cortar el audio.</small></span><input id="enhance" type="checkbox" role="switch" checked></label>
+        <details><summary>Ajustes de audio <span>+</span></summary><label>Canal a analizar<select id="channel"><option value="mix">Ambos · mezcla segura</option><option value="left">Solo izquierdo</option><option value="right">Solo derecho</option></select></label><label class="check-row"><input id="highpass" type="checkbox" checked> Reducir vibración y graves (65 Hz)</label><p>Si una voz solo aparece en un canal, selecciónalo. El audio completo se analiza; no se descartan fragmentos por volumen.</p></details>
+      </div>
+      <div id="image-controls" role="tabpanel" aria-labelledby="tab-image" hidden><div class="field-row"><label>Idioma del texto<select id="ocr-language"><option value="spa+eng">Español + inglés</option><option value="spa">Español</option><option value="eng">Inglés</option><option value="fra">Francés</option><option value="por">Portugués</option></select></label><label>Distribución<select id="ocr-layout"><option value="3">Automática</option><option value="6">Bloque de texto</option><option value="11">Texto disperso / captura</option></select></label></div><label class="switch-row"><span><strong>Mejorar legibilidad</strong><small>Amplía texto pequeño y ajusta contraste.</small></span><input id="ocr-enhance" type="checkbox" role="switch" checked></label></div>
+      <div class="run-row"><button id="run" class="primary" disabled>Transcribir audio <span>→</span></button><button id="cancel" class="secondary" hidden>Cancelar</button></div>
+      <div id="progress-box" hidden><div class="progress-label"><span id="progress-label">Preparando…</span><span id="progress-number"></span></div><progress id="progress" max="100" value="0"></progress></div>
+      <p id="status" role="status" aria-live="polite" class="status">Listo cuando tú lo estés.</p>
+      <p class="processing-note">La primera vez se descarga el modelo. Después se reutiliza la caché del navegador. En celular puede tardar; mantén esta pestaña abierta.</p>
+    </section>
+    <section class="result-panel panel" aria-label="Texto obtenido"><div class="result-header"><div><p class="eyebrow">EL RESULTADO</p><h2>Texto, listo para usar.</h2></div><span class="result-dot" id="result-dot"></span></div>
+      <div id="empty-result" class="empty-result"><div class="paper-icon" aria-hidden="true"><span></span><span></span><span></span></div><h3>Aquí aterrizan las palabras.</h3><p>Carga un audio o una imagen y comienza.<br>Podrás editar, copiar o descargar el texto.</p></div>
+      <label for="result" class="sr-only">Texto obtenido, editable</label><textarea id="result" placeholder="El texto reconocido aparecerá aquí…" hidden spellcheck="true"></textarea>
+      <details id="segments-box" hidden><summary>Marcas de tiempo <span>+</span></summary><div id="segments"></div></details>
+      <div class="result-footer"><span id="word-count">0 palabras</span><div><button id="copy" class="secondary" disabled>Copiar</button><button id="download" class="secondary" disabled>↓ .txt</button><button id="srt" class="secondary" hidden>↓ .srt</button></div></div>
+      <p class="accuracy-note">Revisa nombres, números y partes poco claras. La voz inaudible, voces superpuestas y el ruido pueden generar errores. Las imágenes se leen como texto; no se describen objetos.</p>
+    </section>
+  </div>
+  <section class="how"><div><span>01</span><strong>Trae la fuente</strong><p>Archivo, micrófono, enlace o imagen pegada.</p></div><div><span>02</span><strong>Deja que lo lea</strong><p>Whisper para voz. Tesseract para texto en imágenes.</p></div><div><span>03</span><strong>Úsalo donde quieras</strong><p>Texto editable, descarga y subtítulos para audio.</p></div></section>
+</main>
+<footer><span>Hecho para quitarte pasos.</span><a href="https://github.com/reynosoch" target="_blank" rel="noopener noreferrer">GitHub /reynosoch ↗</a><span>Sin cuenta · Sin claves · Procesamiento local</span></footer>
+<script type="module" src="./app.mjs"></script>
+</body></html>
