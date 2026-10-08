@@ -1,0 +1,10 @@
+{
+  "name": "reynoso-drop",
+  "version": "1.7.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node --check session.js && node --check service-worker.js && node --check protocol.js && node --check files.js && node --check clipboard.js && node --check qr.js && node --check devices.js && node --check qrscan.js && node --test test/*.test.js",
+    "build": "node scripts/build.js"
+  }
+}

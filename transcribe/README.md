@@ -1,6 +1,6 @@
 # Reynoso Transcribe
 
-Página estática publicada en **https://reynosoch.github.io/transcribe/**. Vive en `transcribe/` dentro del repositorio `reynosoch/reynosoch.github.io`; conserva la página existente en la raíz. El despliegue de Pages ya configurado publica los cambios de `main`.
+Página estática publicada en **https://reynosoch.github.io/transcribe/**. Vive en `transcribe/` dentro del repositorio `reynosoch/reynosoch.github.io`, junto con Drop en `drop/`. La raíz ahora es el [centro de herramientas](https://reynosoch.github.io/). El despliegue de Pages ya configurado publica los cambios de `main`.
 
 ## Uso
 
@@ -32,7 +32,7 @@ La amplificación también sube el ruido. No garantiza recuperar palabras inaudi
 
 ## Desarrollo y validación
 
-Sin compilación ni instalación para publicar. Archivos HTML, CSS y módulos JS con rutas relativas a `transcribe/`. CDN y versiones fijados en los módulos de los motores. La raíz del repositorio no se modifica.
+Sin instalación para publicar. Archivos HTML, CSS y módulos JS con rutas relativas a `transcribe/`. CDN y versiones fijados en los módulos de los motores. El build conjunto de la raíz empaqueta ambas herramientas; el service worker de Drop está aislado a `/drop/` y no toca las cachés de modelos.
 
 ```sh
 node --test transcribe/tests/audio.test.mjs

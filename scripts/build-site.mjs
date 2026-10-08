@@ -1,0 +1,10 @@
+import { cp, mkdir, rm } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const dist=resolve(root,'dist');
+await rm(dist,{recursive:true,force:true}); await mkdir(dist);
+for(const file of ['index.html','hub.css','favicon.svg','.nojekyll']) await cp(resolve(root,file),resolve(dist,file));
+await cp(resolve(root,'drop/dist'),resolve(dist,'drop'),{recursive:true});
+await cp(resolve(root,'transcribe'),resolve(dist,'transcribe'),{recursive:true,filter: source => !/\/(tests|README\.md)(\/|$)/.test(source)});
+console.log('Centro de herramientas listo en dist/: portada, drop/ y transcribe/.');

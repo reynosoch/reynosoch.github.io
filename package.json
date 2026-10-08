@@ -1,0 +1,10 @@
+{
+  "name": "reynoso-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npm --prefix drop run check && node --test transcribe/tests/*.test.mjs && node --check transcribe/app.mjs && node --check transcribe/asr-worker.mjs && node scripts/check-site.mjs",
+    "build": "npm --prefix drop run build && node scripts/build-site.mjs"
+  }
+}
