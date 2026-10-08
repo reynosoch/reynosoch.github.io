@@ -3,6 +3,7 @@ import { resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tools } from '../shared/catalog.mjs';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 const root = resolve(fileURLToPath(new URL('../',import.meta.url)));
 let checked = 0;
 async function checkReference(source, reference) {
@@ -29,6 +30,7 @@ for (const directory of ['drop','transcribe','shared']) {
   for (const name of await readdir(resolve(root,directory))) {
     if (!/\.(?:m?js)$/.test(name)) continue;
       const source=resolve(root,directory,name), content=await readFile(source,'utf8');
+    if(directory==='transcribe') execFileSync(process.execPath,['--check',source]);
     for(const match of content.matchAll(/(?:from\s+|import\s*\(|new URL\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g)) await checkReference(source,match[2]);
   }
 }

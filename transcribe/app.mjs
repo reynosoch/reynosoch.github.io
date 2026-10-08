@@ -1,8 +1,13 @@
-import { mixChannels, SAMPLE_RATE, stats, timestamp, toSrt } from './audio.mjs';
+import { stats, timestamp, toSrt } from './audio.mjs';
+import { audioPlan, windowAt, estimatedRemaining, fileIdentity, SESSION_VERSION, validateCheckpoint } from './session.mjs';
+import { openAudioSource, resampleWindow } from './media.mjs';
+import { readRecovery, saveRecovery, deleteRecovery } from './storage.mjs';
 const $ = id => document.getElementById(id);
 let mode = 'audio', file = null, objectUrl = null, busy = false, asrWorker = null, ocrWorker = null;
 let segments = [], duration = 0, recorder = null, stream = null, recordingTimer = null, recordingStarted = 0;
 let operation = 0, loading = false, currentLoad = 0;
+let checkpoint=null, savedRecord=null, source=null, controller=null, pendingWorker=null, pauseRequested=false, wakeLock=null, wakeAllowed=false, consentPending=false;
+let runWarnings=[],authorizedDuration=null;
 
 function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
 function progress(label, percent) {
@@ -11,10 +16,10 @@ function progress(label, percent) {
   else { $('progress').removeAttribute('value'); $('progress-number').textContent = ''; }
 }
 function updateButtons() {
-  $('run').disabled = !file || busy || loading || Boolean(recorder);
-  for (const id of ['tab-audio', 'tab-image', 'remove-file', 'record', 'url-toggle', 'model', 'audio-language', 'channel', 'enhance', 'highpass', 'ocr-language', 'ocr-layout', 'ocr-enhance', 'dropzone', 'audio-url']) $(id).disabled = busy || loading;
-  $('url-form').querySelector('button').disabled = busy || loading;
-  $('cancel').hidden = !busy; $('run').textContent = busy ? 'Procesando…' : mode === 'audio' ? 'Transcribir audio →' : 'Extraer texto →';
+  $('run').disabled = !file || busy || loading || consentPending || Boolean(recorder);
+  for (const id of ['tab-audio', 'tab-image', 'remove-file', 'record', 'url-toggle', 'model', 'device', 'audio-language', 'channel', 'enhance', 'highpass', 'ocr-language', 'ocr-layout', 'ocr-enhance', 'dropzone', 'audio-url']) $(id).disabled = busy || loading || consentPending;
+  $('url-form').querySelector('button').disabled = busy || loading || consentPending;
+  $('cancel').hidden = !busy; $('pause').hidden = !busy || mode!=='audio'; $('pause').disabled=pauseRequested; $('resume').textContent=checkpoint?`Continuar · Whisper ${checkpoint.options.model} · ${checkpoint.options.device==='webgpu'?'GPU':'CPU'} →`:'Continuar desde el último fragmento →'; $('resume').hidden=busy || !checkpoint || checkpoint.next>=audioPlan(checkpoint.duration,checkpoint.options.model).count; $('result').readOnly=busy; $('recover').disabled=busy||loading||consentPending; $('forget').disabled=busy||loading||consentPending; $('run').textContent = busy ? 'Procesando…' : mode === 'audio' ? 'Transcribir audio →' : 'Extraer texto →';
 }
 function updateResult() {
   const value = $('result').value.trim();
@@ -24,7 +29,7 @@ function updateResult() {
 }
 function clearResult() {
   $('result').value = ''; $('result').hidden = true; $('empty-result').hidden = false;
-  segments = []; $('segments').replaceChildren(); $('segments-box').hidden = true; $('srt').hidden = true;
+  segments = []; checkpoint=null; $('resume').hidden=true; $('session-metrics').hidden=true; $('segments').replaceChildren(); $('segments-box').hidden = true; $('srt').hidden = true;
   updateResult();
 }
 function showResult(text) {
@@ -39,7 +44,7 @@ function clearFile() {
   updateButtons();
 }
 function setMode(next, preserve = false) {
-  if (busy || loading || recorder) return;
+  if (busy || loading || consentPending || recorder) return;
   if (!preserve && next !== mode) { clearFile(); clearResult(); status('Listo cuando tú lo estés.'); }
   mode = next;
   for (const type of ['audio', 'image']) {
@@ -53,18 +58,18 @@ function setMode(next, preserve = false) {
   updateButtons();
 }
 function acceptFile(candidate) {
-  if (busy || loading || recorder || !candidate) return;
+  if (busy || loading || consentPending || recorder || !candidate) return;
   const isImage = candidate.type.startsWith('image/') || /\.(png|jpe?g|webp|bmp|gif|tiff?|avif|heic|heif)$/i.test(candidate.name);
   const isAudio = /^(audio|video)\//.test(candidate.type) || /\.(m4a|mp3|wav|ogg|opus|flac|aac|aiff?|webm|mp4|mov)$/i.test(candidate.name);
   if (!isImage && !isAudio) return status('Elige un archivo de audio, video o imagen. PDF y archivos de texto no son fuentes admitidas.', true);
-  if (candidate.size > 300 * 1024 * 1024) return status('El archivo supera 300 MB. Divide la grabación para evitar agotar la memoria del navegador.', true);
+  if (candidate.size > (isImage ? 300 : 2048) * 1024 * 1024) return status(isImage ? 'La imagen supera 300 MB.' : 'El audio o video supera 2 GB. Divide o extrae su pista de audio.', true);
   if (!candidate.size) return status('El archivo está vacío.', true);
   clearFile(); clearResult(); setMode(isImage ? 'image' : 'audio', true); file = candidate;
   objectUrl = URL.createObjectURL(file); $('file-card').hidden = false;
   $('file-name').textContent = file.name; $('file-meta').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB · ${isImage ? 'Imagen' : 'Audio / video'}`;
   $('file-type').textContent = isImage ? '▧' : '◉';
   const preview = $(isImage ? 'image-preview' : 'audio-preview'); preview.src = objectUrl; preview.hidden = false;
-  status('Archivo listo. Puedes comenzar.'); updateButtons();
+  status('Archivo listo. Puedes comenzar.'); updatePlan(); updateButtons();
 }
 $('tab-audio').onclick = () => setMode('audio'); $('tab-image').onclick = () => setMode('image');
 for (const type of ['audio','image']) $(`tab-${type}`).addEventListener('keydown', e => {
@@ -82,7 +87,7 @@ document.addEventListener('paste', e => {
 });
 $('url-toggle').onclick = () => { $('url-form').hidden = !$('url-form').hidden; if (!$('url-form').hidden) $('audio-url').focus(); };
 $('url-form').onsubmit = async e => {
-  e.preventDefault(); if (busy || loading || recorder) return;
+  e.preventDefault(); if (busy || loading || consentPending || recorder) return;
   const raw = $('audio-url').value.trim();
   try {
     const url = new URL(raw); if (url.protocol !== 'https:') throw new Error('Usa un enlace HTTPS directo al archivo.');
@@ -90,8 +95,16 @@ $('url-form').onsubmit = async e => {
     const response = await fetch(url, { signal: AbortSignal.timeout(120000), credentials: 'omit' });
     if (!response.ok) throw new Error(`El servidor respondió ${response.status}.`);
     const size = Number(response.headers.get('content-length'));
-    if (size > 300 * 1024 * 1024) throw new Error('El archivo supera 300 MB.');
-    const blob = await response.blob(); if (ticket !== currentLoad) return;
+    if (size > 300 * 1024 * 1024) throw new Error('Desde URL el límite es 300 MB. Descarga el archivo y selecciónalo localmente para audio más grande.');
+    const reader=response.body?.getReader();let blob;
+    if(reader) {
+      const parts=[];let received=0;
+      try {while(true) {const {done,value}=await reader.read();if(done) break;received+=value.byteLength;if(received>300*1024*1024) throw new Error('Desde URL el límite es 300 MB. Descarga y selecciona el archivo localmente.');parts.push(value);}}
+      catch(error) {await reader.cancel().catch(()=>{});throw error;} finally {reader.releaseLock();}
+      blob=new Blob(parts,{type:response.headers.get('content-type')||''});
+    } else blob=await response.blob();
+    if(blob.size>300*1024*1024) throw new Error('Desde URL el límite es 300 MB.');
+    if (ticket !== currentLoad) return;
     loading = false;
     const name = decodeURIComponent(url.pathname.split('/').pop() || 'audio.mp3');
     acceptFile(new File([blob], name, { type: blob.type }));
@@ -104,7 +117,7 @@ function releaseRecording() {
 }
 $('record').onclick = async () => {
   if (recorder) { recorder.stop(); return; }
-  if (busy || loading) return;
+  if (busy || loading || consentPending) return;
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return status('Este navegador no permite grabar. Usa Chrome, Edge o Safari actualizado y una conexión HTTPS.', true);
   loading = true; updateButtons();
   try {
@@ -126,26 +139,6 @@ $('record').onclick = async () => {
   finally { loading = false; updateButtons(); }
 };
 
-async function decodeAudio(sourceFile) {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) throw new Error('El navegador no admite decodificación de audio.');
-  const context = new AudioContextClass();
-  let buffer;
-  try { buffer = await context.decodeAudioData(await sourceFile.arrayBuffer()); }
-  catch { throw new Error('No se pudo leer este formato o códec. Prueba convertir el archivo a WAV o MP3, o abrirlo en Chrome / Edge actualizado.'); }
-  finally { await context.close(); }
-  duration = buffer.duration;
-  // Bound allocations before creating a second copy and the inference tensor.
-  if (duration > 3600) throw new Error('La grabación supera una hora. Divídela en partes para procesarla sin agotar la memoria.');
-  const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
-  const mono = mixChannels(channels, $('channel').value);
-  const offline = new OfflineAudioContext(1, Math.ceil(duration * SAMPLE_RATE), SAMPLE_RATE);
-  const monoBuffer = offline.createBuffer(1, mono.length, buffer.sampleRate); monoBuffer.copyToChannel(mono, 0);
-  const source = offline.createBufferSource(); source.buffer = monoBuffer; source.connect(offline.destination); source.start();
-  const rendered = await offline.startRendering(); const samples = rendered.getChannelData(0).slice();
-  $('file-meta').textContent = `${(sourceFile.size / 1024 / 1024).toFixed(2)} MB · ${timestamp(duration).slice(0,8)} · ${buffer.numberOfChannels} canal(es)`;
-  drawWaveform(samples); return samples;
-}
 function drawWaveform(samples) {
   const canvas = $('waveform'), context = canvas.getContext('2d'); canvas.hidden = false;
   const step = Math.max(1, Math.floor(samples.length / canvas.width)); const peak = stats(samples).peak || 1;
@@ -155,25 +148,151 @@ function drawWaveform(samples) {
     const height = Math.max(1, magnitude / peak * 44); context.beginPath(); context.moveTo(x,50-height); context.lineTo(x,50+height); context.stroke();
   }
 }
-async function transcribe(id) {
-  progress('Leyendo y preparando el audio…');
-  const samples = await decodeAudio(file); if (id !== operation) return;
-  if (!asrWorker) asrWorker = new Worker(new URL('./asr-worker.mjs', import.meta.url), { type: 'module' });
-  await new Promise((resolve, reject) => {
-    asrWorker.onmessage = ({ data }) => {
-      if (id !== operation) return;
-      if (data.type === 'progress') progress(data.label, data.percent);
-      else if (data.type === 'error') reject(new Error(data.message));
-      else if (data.type === 'done') {
-        showResult(data.text?.trim() || ''); segments = data.chunks || []; renderSegments();
-        status(data.text?.trim() ? `Transcripción lista. ${data.note || 'Revisa el texto antes de usarlo.'}` : data.note || 'No se reconoció voz. Prueba el modelo Más preciso, otro canal o desactiva la mejora.');
-        resolve();
-      }
+function updatePlan() {
+  const seconds=$('audio-preview').duration;
+  if(mode!=='audio'||!Number.isFinite(seconds)||seconds<=0) return;
+  try {
+    const plan=audioPlan(seconds,$('model').value);
+    $('audio-plan').textContent=`${timestamp(seconds).slice(0,8)} · ${plan.count} fragmento${plan.count===1?'':'s'} · Whisper ${plan.model}. ${seconds>60?'Para una junta importante elige mayor precisión si tu equipo tiene memoria suficiente.':'Una sola pasada para clips de hasta 30 segundos.'}`;
+  } catch(error) { $('audio-plan').textContent=error.message; }
+}
+$('audio-preview').addEventListener('loadedmetadata',updatePlan);
+$('model').addEventListener('change',updatePlan);
+function optionsFromControls() { return {model:$('model').value,device:$('device').value,language:$('audio-language').value,channel:$('channel').value,enhance:$('enhance').checked,highpass:$('highpass').checked}; }
+async function requestConsent({resume=false,ocr=false,compatibility=false,mp3=false,durationOverride}={}) {
+  const selected=resume?checkpoint.options:optionsFromControls();
+  const seconds=durationOverride??(resume?checkpoint.duration:$('audio-preview').duration);
+  const known=Number.isFinite(seconds)&&seconds>0;
+  const plan=!ocr&&known?audioPlan(seconds,selected.model):null;
+  $('consent-plan').textContent=mp3?'El navegador no decodifica esta pista MP3. Puedes autorizar un lector WASM adicional para leerla por partes, sin cargar toda la grabación en memoria.':compatibility?'Esta pista necesita lectura completa en memoria. Solo se permite hasta 3 minutos y 50 MB. No cambia tu archivo.':ocr?'Se descargará el lector OCR y los idiomas seleccionados para extraer texto localmente.':`${resume?'Continuar':'Procesar'} ${known?timestamp(seconds).slice(0,8):'audio de duración por confirmar'} · ${plan?plan.count+' fragmentos · Whisper '+plan.model:selected.model==='auto'?'automático: tiny hasta 1 minuto; base para audio más largo':'Whisper '+selected.model}. CPU y tiempo crecen con la duración.`;
+  const model=plan?.model||selected.model;
+  const size=selected.device==='webgpu'?({tiny:'120',base:'210',small:'600'}[model]||'120–210'):({tiny:'45',base:'80',small:'250'}[model]||'45–80');
+  $('consent-resources').textContent=mp3?'Se descargará mpg123-decoder desde jsDelivr. Funciona localmente, también para MP3 largos. No se cambia el modelo ni se sube el audio.':ocr?'Tesseract y datos de idiomas requieren una descarga inicial y memoria.':compatibility?'Autoriza una decodificación completa de este clip corto.':`${selected.device==='webgpu'?'GPU experimental':'CPU compatible'} · descarga de modelo aproximada: ${size} MB más librerías (Mediabunny, Hash WASM y Transformers.js). Puede estar en caché. La memoria de ejecución es mayor que la descarga. Una hora puede tardar bastante; se mostrará una estimación después del primer fragmento.`;
+  $('save-choice').hidden=ocr||compatibility||mp3; $('wake-choice').hidden=ocr||compatibility||mp3;
+  $('consent-replace').hidden=resume||!$('result').value.trim()||compatibility||mp3;
+  const dialog=$('consent'); consentPending=true; updateButtons();
+  try {
+    let approved;
+    if(typeof dialog.showModal!=='function') approved=window.confirm([$('consent-plan').textContent,$('consent-resources').textContent,$('consent-privacy').textContent].join('\n\n'));
+    else approved=await new Promise(resolve=>{
+      const close=()=>{dialog.removeEventListener('close',close);resolve(dialog.returnValue==='approve');};
+      dialog.addEventListener('close',close);dialog.returnValue='cancel';dialog.showModal();
+    });
+    if(approved&&!ocr&&!compatibility&&!mp3) authorizedDuration=known?seconds:null;
+    return approved;
+  } finally { consentPending=false;updateButtons(); }
+}
+function workerRequest(message,id,transfer=[]) {
+  return new Promise((resolve,reject)=>{
+    if(!asrWorker) asrWorker=new Worker(new URL('./asr-worker.mjs?v=2.0.0',import.meta.url),{type:'module'});
+    pendingWorker={reject};
+    asrWorker.onmessage=({data})=>{
+      if(id!==operation) return;
+      if(data.type==='progress') progress(data.label,data.percent);
+      else if(data.type==='error') {pendingWorker=null;reject(new Error(data.message));}
+      else if(data.type==='ready'||data.type==='partial') {pendingWorker=null;resolve(data);}
     };
-    asrWorker.onerror = e => reject(new Error(e.message || 'El motor de voz no pudo cargar. Comprueba la conexión y la memoria disponible.'));
-    asrWorker.postMessage({ samples, model: $('model').value, language: $('audio-language').value, enhance: $('enhance').checked, highpass: $('highpass').checked }, [samples.buffer]);
+    asrWorker.onerror=event=>{pendingWorker=null;reject(new Error(event.message||'El motor no pudo iniciar. Revisa la conexión o cambia a CPU.'));};
+    asrWorker.postMessage(message,transfer);
   });
 }
+function stopWorker() {pendingWorker?.reject(new DOMException('Cancelado','AbortError'));pendingWorker=null;asrWorker?.terminate();asrWorker=null;}
+async function acquireWake() {
+  if(!wakeAllowed||!busy||document.visibilityState==='hidden'||!navigator.wakeLock?.request) return;
+  try {const ticket=operation,lock=await navigator.wakeLock.request('screen');if(!busy||ticket!==operation) await lock.release();else {wakeLock=lock;lock.addEventListener('release',()=>{if(wakeLock===lock) wakeLock=null;});}}
+  catch { runWarnings.push('No se pudo mantener la pantalla activa.'); }
+}
+async function releaseWake() {const lock=wakeLock;wakeLock=null;await lock?.release().catch(()=>{});}
+async function transcribe(id,resume) {
+  controller=new AbortController();const signal=controller.signal;const selectedFile=file;
+  const selected=resume?checkpoint.options:optionsFromControls();
+  if(selected.device==='webgpu') {
+    const adapter=await navigator.gpu?.requestAdapter();
+    if(id!==operation) return;
+    if(!adapter) throw new Error('La GPU no está disponible. Selecciona CPU y autoriza ese proceso; no se cambia de motor sin tu permiso.');
+  }
+  progress('Abriendo la pista con lectura por partes…');
+  let opened;
+  try { opened=await openAudioSource(selectedFile,{signal,previewDuration:$('audio-preview').duration}); }
+  catch(error) {
+    if((!error.compatibility&&!error.mp3)||id!==operation) throw error;
+    if(!await requestConsent({compatibility:Boolean(error.compatibility),mp3:Boolean(error.mp3)})) throw new Error('Lector adicional no autorizado.');
+    if(id!==operation) return;
+    opened=await openAudioSource(selectedFile,{signal,allowCompatibility:Boolean(error.compatibility),allowMp3:Boolean(error.mp3),previewDuration:$('audio-preview').duration});
+  }
+  if(id!==operation) {opened.dispose();return;}
+  source=opened;duration=source.duration;
+  const plan=audioPlan(duration,selected.model);
+  if(!resume&&(authorizedDuration===null||Math.abs(authorizedDuration-duration)>2||audioPlan(authorizedDuration,selected.model).count!==plan.count)) {
+    if(!await requestConsent({durationOverride:duration})) throw new Error('El plan real de procesamiento no fue autorizado.');
+    if(id!==operation) return;
+  }
+  progress('Verificando el archivo completo para una recuperación segura…');
+  const identity=await fileIdentity(selectedFile,{signal});
+  if(id!==operation) return;
+  if(resume) {
+    if(!validateCheckpoint(checkpoint)||checkpoint.identity!==identity||Math.abs(checkpoint.duration-duration)>.02) throw new Error('La recuperación no corresponde a este audio. Selecciona el archivo original.');
+  } else {
+    checkpoint={version:SESSION_VERSION,identity,name:file.name,duration,options:{...selected,model:plan.model},next:0,history:[],segments:[],text:'',savedAt:Date.now()};
+    showResult('');segments=[];renderSegments();
+  }
+  const options=checkpoint.options;
+  $('file-meta').textContent=`${(file.size/1024/1024).toFixed(2)} MB · ${timestamp(duration).slice(0,8)} · ${source.channels} canal(es) · ${source.method}`;
+  const sessionStart=checkpoint.next,started=performance.now(),baseline=sessionStart?windowAt(plan,sessionStart-1).completed:0;
+  await acquireWake();
+  if(id!==operation) return;
+  await workerRequest({type:'init',options,history:checkpoint.history},id);
+  if(id!==operation) return;
+  let workStarted=performance.now();
+  for(let index=checkpoint.next;index<plan.count;index++) {
+    const window=windowAt(plan,index);
+    progress(`Leyendo fragmento ${index+1}/${plan.count} · ${timestamp(window.start).slice(0,8)}…`,window.start/duration*100);
+    const audio=await source.read(window.start,window.end,options.channel);
+    if(id!==operation) return;
+    const samples=await resampleWindow(audio);
+    if(id!==operation) return;
+    drawWaveform(samples);
+    progress(`Transcribiendo ${index+1}/${plan.count} · ${timestamp(window.start).slice(0,8)}–${timestamp(window.end).slice(0,8)}…`,Math.min(99,window.start/duration*100));
+    const result=await workerRequest({type:'window',samples,window},id,[samples.buffer]);
+    if(id!==operation) return;
+    showResult(result.text);segments=result.chunks;renderSegments();
+    checkpoint={...checkpoint,next:index+1,history:result.history,text:result.text,segments:result.chunks,savedAt:Date.now()};
+    const eta=estimatedRemaining((performance.now()-workStarted)/1000,window.completed-baseline,duration-baseline);
+    $('session-metrics').hidden=false;
+    $('session-metrics').textContent=`${index+1}/${plan.count} fragmentos · ${timestamp(window.completed).slice(0,8)} de ${timestamp(duration).slice(0,8)} · ${((performance.now()-started)/60000).toFixed(1)} min de proceso${eta>0?' · restante estimado '+Math.ceil(eta/60)+' min':''}${result.low&&!result.silent?' · voz muy baja: revisa el texto':''}`;
+    if($('save-recovery').checked) {
+      try {const completedRecord=checkpoint;await saveRecovery(completedRecord);if(id!==operation) return;savedRecord=completedRecord;renderRecovery();}
+      catch {runWarnings.push('No se pudo guardar la recuperación; descarga el texto antes de cerrar.');$('save-recovery').checked=false;}
+    }
+    if(id!==operation) return;
+    progress(`Fragmento ${index+1}/${plan.count} terminado`,window.completed/duration*100);
+    if(pauseRequested&&checkpoint.next<plan.count) {status('Pausado. El texto terminado está disponible; puedes continuar o descargarlo.');return;}
+  }
+  status(`${checkpoint.text?'Transcripción terminada. Revisa nombres, números y los cortes.':'Audio analizado; no se reconoció voz.'} ${[...new Set(runWarnings)].join(' ')}`);
+  checkpoint=null;
+}
+function renderRecovery() {
+  $('recovery-box').hidden=!savedRecord;
+  if(savedRecord) $('recovery-info').textContent=`Recuperación local: ${savedRecord.name||'audio'} · ${savedRecord.next} fragmentos terminados. Para continuar selecciona el mismo audio y recupera el texto.`;
+}
+readRecovery().then(record=>{savedRecord=record;renderRecovery();}).catch(()=>{});
+$('recover').onclick=async()=>{
+  if(busy||loading||consentPending||!savedRecord) return;
+  loading=true;updateButtons();const record=savedRecord,selectedFile=file;
+  try {
+    const match=Boolean(selectedFile&&mode==='audio'&&selectedFile.size===Number(record.identity.split(':')[0]));
+    showResult(record.text);segments=record.segments;duration=record.duration;renderSegments();
+    checkpoint=match?structuredClone(record):null;
+    if(checkpoint) {
+      for(const [id,value] of [['model',checkpoint.options.model],['device',checkpoint.options.device],['audio-language',checkpoint.options.language],['channel',checkpoint.options.channel]]) $(id).value=value;
+      $('enhance').checked=checkpoint.options.enhance;$('highpass').checked=checkpoint.options.highpass;
+    }
+    $('save-recovery').checked=true;
+    status(match?'Texto recuperado. Al continuar se verificará el audio completo antes de reanudar.':'Texto recuperado. Para continuar, selecciona el mismo audio y pulsa Recuperar texto otra vez.');
+  } catch(error) {status(error.message,true);} finally {loading=false;updateButtons();}
+};
+$('forget').onclick=async()=>{try {await deleteRecovery();savedRecord=null;renderRecovery();status('Recuperación local borrada. El texto visible sigue disponible.');}catch(error){status(error.message,true);}};
+$('pause').onclick=()=>{pauseRequested=true;updateButtons();status('Se pausará al terminar el fragmento actual. Detener lo interrumpe inmediatamente.');};
 function renderSegments() {
   $('segments').replaceChildren(); $('segments-box').hidden = !segments.length; $('srt').hidden = !segments.length;
   for (const segment of segments) {
@@ -224,20 +343,26 @@ async function extractText(id) {
     showResult(data.text.trim()); status(data.text.trim() ? `Texto extraído. Confianza orientativa: ${Math.round(data.confidence)}%. Revisa el resultado.` : 'No se encontró texto legible. Prueba otra distribución o desactiva la mejora de imagen.');
   } finally { if(ocrWorker===worker) { ocrWorker = null; await worker.terminate(); } }
 }
-$('run').onclick = async () => {
-  if (!file || busy || loading || recorder) return;
-  busy=true; const id=++operation; clearResult(); updateButtons(); status('Procesando en tu navegador…');
-  try { if(mode==='audio') await transcribe(id); else await extractText(id); }
-  catch(error) {
-    if(id===operation) { status(error.message, true); asrWorker?.terminate(); asrWorker=null; }
-  } finally { if(id===operation) { busy=false; $('progress-box').hidden=true; updateButtons(); } }
+async function startProcessing(resume=false) {
+  if(!file||busy||loading||recorder||consentPending||resume&&!checkpoint) return;
+  try {if(!await requestConsent({resume,ocr:mode==='image'})) return;} catch(error) {status(error.message,true);return;}
+  busy=true;const id=++operation;pauseRequested=false;runWarnings=[];wakeAllowed=$('keep-awake').checked;
+  updateButtons();status('Procesando en tu navegador…');
+  if(mode==='image') clearResult();
+  try {if(mode==='audio') await transcribe(id,resume);else await extractText(id);}
+  catch(error) {if(id===operation) status(`${error.message}${checkpoint?.next?' El texto parcial se puede descargar o continuar.':''}`,true);}
+  finally {
+    if(id===operation) {source?.dispose();source=null;controller=null;stopWorker();await releaseWake();if(id!==operation) return;busy=false;$('progress-box').hidden=true;updateButtons();}
+  }
+}
+$('run').onclick=()=>startProcessing(false);$('resume').onclick=()=>startProcessing(true);
+$('cancel').onclick=()=>{
+  operation++;controller?.abort();source?.dispose();source=null;stopWorker();
+  const old=ocrWorker;ocrWorker=null;if(old) old.terminate().catch(()=>{});
+  releaseWake();busy=false;$('progress-box').hidden=true;updateButtons();status('Detenido. Conservas el texto y el último fragmento terminado. Puedes continuar o descargarlo.');
 };
-$('cancel').onclick = () => {
-  operation++; asrWorker?.terminate(); asrWorker=null;
-  const old=ocrWorker; ocrWorker=null; if(old) old.terminate().catch(()=>{});
-  busy=false; $('progress-box').hidden=true; updateButtons(); status('Proceso cancelado. Tu archivo sigue disponible.');
-};
-$('result').oninput = () => { updateResult(); $('srt').hidden = true; $('segments-box').hidden = true; };
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&busy&&!wakeLock) acquireWake();});
+$('result').oninput = () => { checkpoint=null; updateButtons(); updateResult(); $('srt').hidden = true; $('segments-box').hidden = true; };
 $('copy').onclick = async () => {
   try { await navigator.clipboard.writeText($('result').value); status('Texto copiado.'); }
   catch { $('result').focus(); $('result').select(); status('El navegador bloqueó el portapapeles. El texto quedó seleccionado: usa Ctrl+C o Copiar.'); }
