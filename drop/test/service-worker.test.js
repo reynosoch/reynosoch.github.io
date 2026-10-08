@@ -6,7 +6,7 @@ import { runInNewContext } from 'node:vm';
 function setup() {
   const scope = 'https://reynosoch.github.io/drop/';
   const listeners = new Map(), deleted = [], writes = [];
-  const keys = [`reynoso-drop:${scope}:v1.7.0`, `reynoso-drop:${scope}:v1.7.1`, 'transformers-cache', 'other-tool-cache', 'reynoso-drop-v1.7'];
+  const keys = [`reynoso-drop:${scope}:v1.7.1`, `reynoso-drop:${scope}:v1.7.2`, 'transformers-cache', 'other-tool-cache', 'reynoso-drop-v1.7'];
   const cached = new Map();
   const cache = { match: async request => cached.get(typeof request === 'string' ? request : request.url), put: async (request,response) => writes.push([request,response]) };
   const context = { URL, Response,
@@ -20,7 +20,7 @@ function setup() {
 test('activation removes only outdated Drop caches for this scope', async () => {
   const {listeners,deleted} = setup(); let done;
   listeners.get('activate')({waitUntil:promise=>{done=promise;}}); await done;
-  assert.deepEqual(deleted,['reynoso-drop:https://reynosoch.github.io/drop/:v1.7.0']);
+  assert.deepEqual(deleted,['reynoso-drop:https://reynosoch.github.io/drop/:v1.7.1']);
 });
 test('service worker leaves hub, Transcribe and other origins alone', () => {
   const {listeners}=setup();

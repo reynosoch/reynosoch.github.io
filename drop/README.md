@@ -2,6 +2,8 @@
 
 [Abrir Drop](https://reynosoch.github.io/drop/) · [Centro de herramientas](https://reynosoch.github.io/) · [Repositorio principal](https://github.com/reynosoch/reynosoch.github.io)
 
+Drop forma parte de **Reynoso Toolchain**. Su pestaña se titula **Drop · Reynoso Toolchain** y el header tiene un enlace **← Toolchain** que vuelve a la portada. v1.7.2 conserva el motor y agrega este header Liquid Glass; su CSS se copia desde `shared/toolchain-nav.css` a `drop/toolchain-nav.css` mediante `npm run generate` en la raíz y se incluye en la caché PWA para funcionar offline. El worker sigue limitado a `/drop/` y conserva sesiones, QR y protocolo.
+
 Pasa texto, código, capturas y archivos entre dos dispositivos mediante WebRTC. Funciona como sitio estático en **GitHub Pages**, sin Supabase, sin cuentas y sin base de datos remota. La versión 1.7 hace la conexión desplegable (se minimiza sola al conectar), añade un **escáner de QR con la cámara**, unifica el envío de texto/fotos/archivos en una sola sección y muestra qué dispositivo envió cada elemento y a qué hora.
 
 ## Uso rápido

@@ -10,19 +10,20 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Reynoso Drop">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https://0.peerjs.com wss://0.peerjs.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Reynoso Drop · de aquí para allá</title>
+  <title>Drop · Reynoso Toolchain</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css?v=1.7.1">
+  <link rel="stylesheet" href="./styles.css?v=1.7.2">
   <script defer src="./vendor/peerjs.min.js"></script>
   <script defer src="./vendor/qrcode.js"></script>
   <script defer src="./vendor/jsqr.js"></script>
-  <script type="module" src="./app.js?v=1.7.1"></script>
-  <script type="module" src="./session.js?v=1.7.1"></script>
+  <script type="module" src="./app.js?v=1.7.2"></script>
+  <script type="module" src="./session.js?v=1.7.2"></script>
+<link rel="stylesheet" href="./toolchain-nav.css?v=1.7.2"><link rel="canonical" href="https://reynosoch.github.io/drop/">
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="./" aria-label="Reynoso Drop, inicio"><img src="./favicon.svg" alt="" width="35" height="35"><span>reynoso<span class="brand-light"> / drop</span></span></a><div class="top-meta"><span class="dot"></span> LOCAL · SIN BASE DE DATOS</div></header>
+  <header class="tc-header"><div class="tc-left"><a class="tc-home" href="../" aria-label="Volver a Reynoso Toolchain"><span class="tc-arrow" aria-hidden="true">←</span> Toolchain</a><span class="tc-current">Drop</span></div><a class="tc-repo" href="https://github.com/reynosoch/reynosoch.github.io" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a></header>
   <main>
     <section class="intro"><div class="eyebrow">TU PUENTE ENTRE PANTALLAS</div><h1>De aquí<span class="headline-arrow" aria-hidden="true">↗</span><br>para allá.</h1><p>Transfiere texto y archivos<br>entre tus dispositivos.</p><div class="intro-tags"><span>Sin cuentas</span><span>Instalable en iPad</span><span>Sesión persistente</span></div></section>
     <details id="session-panel" class="session panel" open>
@@ -41,7 +42,7 @@
     <section class="inbox panel" aria-labelledby="inbox-title"><div class="panel-heading"><h2 id="inbox-title"><span class="step">03</span> Tu bandeja</h2><button id="clear-inbox" class="button subtle" disabled>Vaciar</button></div><label class="auto-receive"><input id="auto-receive" type="checkbox" checked><span>Recibir archivos automáticamente<small>Llegan a esta bandeja. Descarga los que quieras conservar.</small></span></label><p class="inbox-limits">Recibes hasta <strong>50 MB por archivo</strong> · 100 MB y 30 elementos en la bandeja. Cada elemento indica <strong>qué dispositivo lo envió y a qué hora</strong>.</p><div id="inbox-empty" class="empty"><div class="empty-mark" aria-hidden="true"><span>↙</span><span>↗</span></div><h3>Lo que envíes llega aquí.</h3><p>Texto listo para copiar.<br>Fotos y documentos listos para descargar.</p><span class="empty-note">La sala persiste; la bandeja no se guarda tras recargar</span></div><div id="inbox-items" class="inbox-items"></div></section></div>
     <details class="how"><summary>Lo que necesitas saber <span aria-hidden="true">＋</span></summary><div class="how-grid"><div><h3>Instalable en iPad</h3><p>En Safari usa Compartir → Agregar a pantalla de inicio. Se abre como app y guarda en caché la interfaz; para conectar con otro dispositivo todavía necesitas red.</p></div><div><h3>Sesión local persistente</h3><p>El código, rol, nombre del dispositivo, borrador corto y preferencia de recepción se guardan únicamente en este navegador. Tras F5 o un corte se intenta recuperar la misma sala. Pulsa Cerrar sala para borrar esa sesión.</p></div><div><h3>Sin base de datos</h3><p>Los archivos y mensajes no se suben a GitHub, Supabase ni otra base de datos. PeerJS solo ayuda a que las dos pantallas se encuentren; el contenido viaja por WebRTC.</p></div><div><h3>Fotos y documentos de trabajo</h3><p>Selecciona varios archivos: fotos, Excel, CSV, PDF, Word, PowerPoint, ZIP o cualquier otro formato. Se conserva el archivo original. Hasta 50 MB por archivo y 100 MB por selección.</p></div><div><h3>Bandeja temporal</h3><p>La sesión sí se recupera, pero los archivos ya recibidos siguen viviendo en memoria para no convertir el navegador en un almacén. Descarga lo que quieras conservar antes de recargar.</p></div></div></details>
   </main>
-  <footer><span>REYNOSO / DROP <span class="version">v1.7.1</span></span><span>Un puente. Cero almacenamiento en la nube.</span><a class="github-profile" href="https://github.com/reynosoch" target="_blank" rel="noopener noreferrer" aria-label="Perfil de reynosoch en GitHub"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.57 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.15a10.8 10.8 0 0 1 5.65 0c2.15-1.46 3.1-1.15 3.1-1.15.61 1.55.23 2.69.11 2.98.72.79 1.16 1.79 1.16 3.02 0 4.33-2.64 5.28-5.15 5.56.4.35.77 1.03.77 2.08v3.1c0 .3.2.65.78.54A11.25 11.25 0 0 0 12 .75Z"/></svg>/reynosoch <span aria-hidden="true">↗</span></a></footer>
+  <footer><span>REYNOSO / DROP <span class="version">v1.7.2</span></span><span>Un puente. Cero almacenamiento en la nube.</span><a class="github-profile" href="https://github.com/reynosoch" target="_blank" rel="noopener noreferrer" aria-label="Perfil de reynosoch en GitHub"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 1.72 2.63 1.22 3.27.93.1-.73.39-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.57 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.15a10.8 10.8 0 0 1 5.65 0c2.15-1.46 3.1-1.15 3.1-1.15.61 1.55.23 2.69.11 2.98.72.79 1.16 1.79 1.16 3.02 0 4.33-2.64 5.28-5.15 5.56.4.35.77 1.03.77 2.08v3.1c0 .3.2.65.78.54A11.25 11.25 0 0 0 12 .75Z"/></svg>/reynosoch <span aria-hidden="true">↗</span></a></footer>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
 </html>

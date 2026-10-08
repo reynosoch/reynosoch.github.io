@@ -1,5 +1,7 @@
 # Reynoso Transcribe
 
+Forma parte de **Reynoso Toolchain**. La pestaña se titula **Transcribe · Reynoso Toolchain** y el header **← Toolchain** regresa siempre a [la portada](https://reynosoch.github.io/). El estilo del header usa `../shared/toolchain-nav.css` y no modifica el motor, sus controles, límites ni workers de procesamiento.
+
 Página estática publicada en **https://reynosoch.github.io/transcribe/**. Vive en `transcribe/` dentro del repositorio `reynosoch/reynosoch.github.io`, junto con Drop en `drop/`. La raíz ahora es el [centro de herramientas](https://reynosoch.github.io/). El despliegue de Pages ya configurado publica los cambios de `main`.
 
 ## Uso
