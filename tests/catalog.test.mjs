@@ -6,8 +6,8 @@ test('catalog exposes the requested stable routes without duplicate or fake read
   const routes=['drop','transcribe','inspect','diff','clean','sql','context','prompt','json','api','regex','code','image','audio','pdf','shot','encode','qr','convert','errors','snippets','projects'];
   assert.deepEqual(tools.map(tool=>tool.id),routes);
   assert.equal(new Set(tools.map(tool=>tool.id)).size,22);
-  assert.deepEqual(tools.filter(tool=>tool.ready).map(tool=>tool.id),['drop','transcribe']);
-  assert.equal(tools.filter(tool=>!tool.ready).length,20);
+  assert.deepEqual(tools.filter(tool=>tool.ready).map(tool=>tool.id),['drop','transcribe','snippets']);
+  assert.equal(tools.filter(tool=>!tool.ready).length,19);
   for(const tool of tools) {
     assert.ok(/^[a-z]+$/.test(tool.id)); assert.ok(categories.some(category=>category.id===tool.category));
     assert.ok(tool.summary&&tool.purpose&&tool.features.length&&tool.examples.length);

@@ -33,11 +33,11 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
     }
   }
 }
-for (const directory of ['drop','transcribe','transcribe/vendor','shared']) {
+for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data']) {
   for (const name of await readdir(resolve(root,directory))) {
     if (!/\.(?:m?js)$/.test(name)) continue;
       const source=resolve(root,directory,name), content=await readFile(source,'utf8');
-    if(directory.startsWith('transcribe')) execFileSync(process.execPath,['--check',source]);
+    if(directory.startsWith('transcribe')||directory.startsWith('snippets')) execFileSync(process.execPath,['--check',source]);
     for(const match of content.matchAll(/(?:from\s+|import\s*\(|new URL\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g)) await checkReference(source,match[2]);
   }
 }

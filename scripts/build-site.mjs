@@ -8,6 +8,7 @@ await rm(dist,{recursive:true,force:true}); await mkdir(dist);
 for(const file of ['index.html','hub.css','hub.mjs','favicon.svg','.nojekyll','shared']) await cp(resolve(root,file),resolve(dist,file),{recursive:true});
 await cp(resolve(root,'drop/dist'),resolve(dist,'drop'),{recursive:true});
 await cp(resolve(root,'transcribe'),resolve(dist,'transcribe'),{recursive:true,filter: source => !/\/(tests|README\.md)(\/|$)/.test(source)});
+await cp(resolve(root,'snippets'),resolve(dist,'snippets'),{recursive:true,filter:source=>!/\/(tests|README\.md)(\/|$)/.test(source)});
 for(const tool of tools.filter(tool=>!tool.ready)) {
   await mkdir(resolve(dist,tool.id),{recursive:true});
   await cp(resolve(root,tool.id,'index.html'),resolve(dist,tool.id,'index.html'));
