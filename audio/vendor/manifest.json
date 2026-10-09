@@ -1,0 +1,51 @@
+[
+  {
+    "file": "ort.wasm-1.22.0.min.mjs",
+    "bytes": 48259,
+    "sha256": "6ef726f355b791129f7ddf3f62e7877a16b9b777abe87004b8ab306e6b9cf265",
+    "source": "https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-1.22.0.tgz",
+    "licenses": [
+      "onnxruntime.LICENSE",
+      "onnxruntime.NOTICES"
+    ]
+  },
+  {
+    "file": "ort-wasm-simd-threaded.mjs",
+    "bytes": 20856,
+    "sha256": "30dd851d9c00622940500f71ddd2ff8820c5cb65270816080175b958705385a8",
+    "source": "https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-1.22.0.tgz",
+    "licenses": [
+      "onnxruntime.LICENSE",
+      "onnxruntime.NOTICES"
+    ]
+  },
+  {
+    "file": "ort-wasm-simd-threaded.wasm",
+    "bytes": 11210254,
+    "sha256": "71aef04959c5c1b6de461b6538e2058e306610034a85aad2742d0c7fd4533fe4",
+    "source": "https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-1.22.0.tgz",
+    "licenses": [
+      "onnxruntime.LICENSE",
+      "onnxruntime.NOTICES"
+    ]
+  },
+  {
+    "file": "silero_vad_v5.onnx",
+    "bytes": 2327524,
+    "sha256": "2623a2953f6ff3d2c1e61740c6cdb7168133479b267dfef114a4a3cc5bdd788f",
+    "source": "https://registry.npmjs.org/@ricky0123/vad-web/-/vad-web-0.0.29.tgz",
+    "licenses": [
+      "silero.LICENSE"
+    ]
+  },
+  {
+    "file": "rnnoise-2025.1.5.mjs",
+    "bytes": 4827304,
+    "sha256": "e6958293a0118bf9860cb2753332f7562531cc987c914552c426cd7d7180a63e",
+    "source": "https://registry.npmjs.org/@shiguredo/rnnoise-wasm/-/rnnoise-wasm-2025.1.5.tgz",
+    "licenses": [
+      "rnnoise-wasm.LICENSE",
+      "rnnoise.LICENSE"
+    ]
+  }
+]

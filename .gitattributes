@@ -1,2 +1,6 @@
 # Preserve embedded WASM/yEnc and upstream bundles byte-for-byte on every OS.
 transcribe/vendor/*.min.mjs -text -diff
+
+audio/vendor/*.mjs -text -diff
+audio/vendor/*.wasm -text -diff
+audio/vendor/*.onnx -text -diff

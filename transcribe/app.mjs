@@ -1,6 +1,8 @@
 import { stats, timestamp, toSrt } from './audio.mjs';
 import { audioPlan, windowAt, estimatedRemaining, fileIdentity, SESSION_VERSION, validateCheckpoint } from './session.mjs?v=2.0.1';
 import { openAudioSource, resampleWindow } from './media.mjs?v=2.0.1';
+import { clearHandoffTemp, clearStaleHandoffs } from '../shared/handoff-transfer.mjs';
+import { receiveAudioHandoff, outputToOriginal } from '../shared/audio-handoff.mjs';
 import { readRecovery, saveRecovery, deleteRecovery } from './storage.mjs';
 const $ = id => document.getElementById(id);
 let mode = 'audio', file = null, objectUrl = null, busy = false, asrWorker = null, ocrWorker = null;
@@ -8,6 +10,7 @@ let segments = [], duration = 0, recorder = null, stream = null, recordingTimer 
 let operation = 0, loading = false, currentLoad = 0;
 let checkpoint=null, savedRecord=null, source=null, controller=null, pendingWorker=null, pauseRequested=false, wakeLock=null, wakeAllowed=false, consentPending=false;
 let runWarnings=[],authorizedDuration=null;
+let audioLabMetadata=null;
 
 function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
 function progress(label, percent) {
@@ -36,6 +39,7 @@ function showResult(text) {
   $('result').value = text; $('result').hidden = false; $('empty-result').hidden = true; updateResult();
 }
 function clearFile() {
+  clearHandoffTemp(audioLabMetadata?.tempName);audioLabMetadata=null; $('audio-lab-note')?.remove();
   if (objectUrl) URL.revokeObjectURL(objectUrl);
   objectUrl = null; file = null; duration = 0; $('file-input').value = '';
   $('audio-preview').pause(); $('audio-preview').removeAttribute('src'); $('audio-preview').load();
@@ -298,7 +302,8 @@ function renderSegments() {
   for (const segment of segments) {
     const row = document.createElement('div'); row.className = 'segment';
     const button = document.createElement('button'); button.textContent = timestamp(segment.timestamp[0]).slice(0,8);
-    button.title = 'Escuchar este fragmento'; button.onclick = () => { $('audio-preview').currentTime = segment.timestamp[0] || 0; $('audio-preview').play().catch(() => status('Pulsa reproducir en el audio para escuchar.')); };
+    if(audioLabMetadata)button.title = 'Original '+timestamp(outputToOriginal(segment.timestamp[0]||0,audioLabMetadata.timeMap)).slice(0,8);
+    else button.title = 'Escuchar este fragmento'; button.onclick = () => { $('audio-preview').currentTime = segment.timestamp[0] || 0; $('audio-preview').play().catch(() => status('Pulsa reproducir en el audio para escuchar.')); };
     const text = document.createElement('span'); text.textContent = segment.text; row.append(button,text); $('segments').append(row);
   }
 }
@@ -374,3 +379,14 @@ function download(content, extension) {
 $('download').onclick=()=>download($('result').value,'txt'); $('srt').onclick=()=>download(toSrt(segments,duration),'srt');
 window.addEventListener('beforeunload', e => { if(busy || recorder) { e.preventDefault(); e.returnValue=''; } });
 setMode('audio');
+
+// Only receives a same-origin, nonce-bound File after Audio Lab's explicit handoff consent.
+clearStaleHandoffs();window.addEventListener('pagehide',()=>clearHandoffTemp(audioLabMetadata?.tempName));
+receiveAudioHandoff({
+  onStart(){if(busy||loading||consentPending||recorder)return false;loading=true;updateButtons();status('Recibiendo WAV local de Audio Lab…');return true;},
+  onProgress(percent){status('Recibiendo audio local · '+Math.round(percent)+'%. No se sube a servidores.');},
+  onFinish(){loading=false;updateButtons();},
+  accept(candidate){if(busy||loading||consentPending||recorder)return false;acceptFile(candidate);return file===candidate;},
+  onMetadata(metadata){audioLabMetadata=metadata;const note=document.createElement('p');note.id='audio-lab-note';note.className='plan-note';note.textContent='Recibido de Audio Lab · WAV limpio. Las marcas y SRT usan el tiempo procesado; pasa sobre una marca para ver el tiempo original. ';const button=document.createElement('button');button.className='secondary';button.textContent='Descargar mapa original';button.onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,originalDuration:metadata.originalDuration,timeMap:metadata.timeMap},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='audio-lab-time-map.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};note.append(button);$('file-card').after(note);$('enhance').checked=false;$('highpass').checked=false;status('Audio limpio recibido. Elige modelo e idioma y autoriza Transcribe para empezar.');},
+  onError(error){status(error.message,true);}
+});

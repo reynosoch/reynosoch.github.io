@@ -6,11 +6,13 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 const root = resolve(fileURLToPath(new URL('../',import.meta.url)));
-const vendors=JSON.parse(await readFile(resolve(root,'transcribe/vendor/manifest.json'),'utf8'));
+for(const directory of ['transcribe','audio']) {
+const vendors=JSON.parse(await readFile(resolve(root,directory,'vendor/manifest.json'),'utf8'));
 for(const vendor of vendors) {
-  const bytes=await readFile(resolve(root,'transcribe/vendor',vendor.file));
+  const bytes=await readFile(resolve(root,directory,'vendor',vendor.file));
   assert.equal(createHash('sha256').update(bytes).digest('hex'),vendor.sha256,`Lector incompleto o modificado: ${vendor.file}`);
-  for(const license of vendor.licenses) await access(resolve(root,'transcribe/vendor',license));
+  for(const license of vendor.licenses) await access(resolve(root,directory,'vendor',license));
+}
 }
 let checked = 0;
 async function checkReference(source, reference) {
@@ -33,11 +35,11 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
     }
   }
 }
-for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data']) {
+for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data','audio','audio/vendor']) {
   for (const name of await readdir(resolve(root,directory))) {
     if (!/\.(?:m?js)$/.test(name)) continue;
       const source=resolve(root,directory,name), content=await readFile(source,'utf8');
-    if(directory.startsWith('transcribe')||directory.startsWith('snippets')) execFileSync(process.execPath,['--check',source]);
+    if(directory.startsWith('transcribe')||directory.startsWith('snippets')||directory.startsWith('audio')||directory==='shared') execFileSync(process.execPath,['--check',source]);
     for(const match of content.matchAll(/(?:from\s+|import\s*\(|new URL\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g)) await checkReference(source,match[2]);
   }
 }
