@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 const root = resolve(fileURLToPath(new URL('../',import.meta.url)));
+const standaloneReady=new Set(['convert']);
 for(const directory of ['transcribe','audio','shot']) {
 const vendors=JSON.parse(await readFile(resolve(root,directory,'vendor/manifest.json'),'utf8'));
 for(const vendor of vendors) {
@@ -28,18 +29,18 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
   assert.ok(html.includes(`<title>${tool?`${tool.name} · Reynoso Toolchain`:'Reynoso Toolchain'}</title>`),`Título incorrecto: ${relativePath}`);
   if(tool) {
     assert.match(html, /href="\.\.\/"/,`Sin vuelta al landing: ${relativePath}`);
-    if(!tool.ready) {
+    if(!tool.ready&&!standaloneReady.has(tool.id)) {
       assert.match(html,/EN DESARROLLO/);
       assert.doesNotMatch(html,/<(?:input|textarea|form)\b|<script\b/,`Placeholder con procesamiento simulado: ${relativePath}`);
       assert.match(html,/Todavía no procesa archivos ni ejecuta acciones/);
     }
   }
 }
-for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data','audio','audio/vendor','shot','shot/editor','shot/media','shot/ui','shot/vendor']) {
+for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data','audio','audio/vendor','shot','shot/editor','shot/media','shot/ui','shot/vendor','convert']) {
   for (const name of await readdir(resolve(root,directory))) {
     if (!/\.(?:m?js)$/.test(name)) continue;
       const source=resolve(root,directory,name), content=await readFile(source,'utf8');
-    if(directory.startsWith('transcribe')||directory.startsWith('snippets')||directory.startsWith('audio')||directory==='shared'||directory.startsWith('shot')) execFileSync(process.execPath,['--check',source]);
+    if(directory.startsWith('transcribe')||directory.startsWith('snippets')||directory.startsWith('audio')||directory==='shared'||directory.startsWith('shot')||directory==='convert') execFileSync(process.execPath,['--check',source]);
     for(const match of content.matchAll(/(?:from\s+|import\s*\(|new URL\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g)) await checkReference(source,match[2]);
   }
 }
