@@ -10,6 +10,8 @@ Herramientas pequeñas para quitar pasos grandes. Una colección personal para d
 
 **Toolchain contiene herramientas adoptadas:** utilidades que ya forman parte del flujo cotidiano y deben mantenerse estables. **[Reynoso LAB](https://reynosoch.github.io/reynoso-lab/) contiene experimentos:** repositorios por descubrir, inspeccionar, probar, documentar y, quizá, promover.
 
+Ambos sitios comparten el mismo recorrido y se distinguen por intención: **LAB usa verde** para descubrir y experimentar; **Toolchain usa naranja** para lo adoptado, mantenido y listo para volver a usar.
+
 ```text
 LAB → probar → aprender → descartar o adoptar → Toolchain / proyecto / fork
 ```
