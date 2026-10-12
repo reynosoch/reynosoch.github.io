@@ -5,6 +5,7 @@ import { tools, categories, dailyOrder, statusLabel } from '../shared/catalog.mj
 import { icon } from '../shared/icons.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const checking=process.argv.includes('--check');
+const standaloneReady=new Set(['convert']);
 async function emit(path,content) {
   if(checking) {
     if(await readFile(path,'utf8')!==content) throw new Error(`Generación desactualizada: ${path}. Ejecuta npm run generate.`);
@@ -37,7 +38,7 @@ const landing=`${head('Reynoso Toolchain','Herramientas pequeñas para quitar pa
 <aside class="collection-note"><span class="note-symbol" aria-hidden="true">${icon('circle-plus','ui-icon')}</span><p><strong>Lo que viene también tiene su lugar.</strong> Las herramientas en desarrollo ya tienen página y URL estable. Puedes guardarlas en favoritos desde ahora.</p><a href="${repo}#readme">Mapa del Toolchain ${icon('external-link','ui-icon')}</a></aside>
 </main>${footer('./')}</div><script type="module" src="./hub.mjs"></script></body></html>\n`;
 await emit(resolve(root,'index.html'),landing);
-for(const tool of tools.filter(tool=>!tool.ready)) {
+for(const tool of tools.filter(tool=>!tool.ready&&!standaloneReady.has(tool.id))) {
   const category=categories.find(category=>category.id===tool.category);
   const related=tool.related.map(id=>lookup(id)).filter(Boolean);
   const page=`${head(`${tool.name} · Reynoso Toolchain`,`${tool.summary} Herramienta en desarrollo: conoce su propósito y ejemplos de uso.`, '../',`${tool.id}/`)}
@@ -56,4 +57,4 @@ const readme=await readFile(readmePath,'utf8');
 const table=`| Herramienta | Estado | URL | Propósito |\n| --- | --- | --- | --- |\n`+tools.map(tool=>`| ${tool.name} | ${statusLabel(tool)} | [Abrir ${tool.name}](https://reynosoch.github.io/${tool.id}/) | ${tool.summary} |`).join('\n');
 if(!readme.includes('<!-- TOOLCHAIN_CATALOG_START -->')) throw new Error('README needs catalog markers');
 await emit(readmePath,readme.replace(/<!-- TOOLCHAIN_CATALOG_START -->[\s\S]*?<!-- TOOLCHAIN_CATALOG_END -->/,`<!-- TOOLCHAIN_CATALOG_START -->\n${table}\n<!-- TOOLCHAIN_CATALOG_END -->`));
-console.log(checking?'Generación de Toolchain sincronizada.':`Toolchain generado: portada, ${tools.filter(tool=>!tool.ready).length} placeholders, README y navegación PWA.`);
+console.log(checking?'Generación de Toolchain sincronizada.':`Toolchain generado: portada, ${tools.filter(tool=>!tool.ready&&!standaloneReady.has(tool.id)).length} placeholders, README y navegación PWA.`);
