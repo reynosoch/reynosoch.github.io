@@ -36,6 +36,15 @@ Safari/iPad/Firefox y navegadores sin esta API muestran Seleccionar capturas y u
 
 La sesión reciente se guarda en IndexedDB `reynoso-shot`, stores `assets`, `state`, `folder`. Blobs y estado estructural separados, guardado de metadata con debounce de 600 ms y operaciones serializadas. Caduca tras 7 días desde el último guardado; se elimina al volver a abrir si caducó. El quota check ofrece aviso cuando el espacio es insuficiente. Un error de IndexedDB deja edición en memoria con aviso de que debe descargarse antes de cerrar. Borrar sesión limpia solo esta herramienta, revoca thumbnails y libera referencias de canvas. No es sincronización ni respaldo permanente.
 
+## Zoom y navegación
+
+- Pinch del trackpad o Ctrl/Cmd + rueda: zoom en tiempo real al punto del cursor.
+- Pinch con dos dedos dentro del lienzo: acercar/alejar; mover ambos dedos: pan.
+- + / −: cambiar zoom; Encajar: mostrar la captura; 100%: tamaño 1:1.
+- Mover vista: arrastrar con mouse; un dedo sigue usando la herramienta elegida, dos dedos toman temporalmente la vista. Al terminar vuelve la herramienta anterior.
+
+La imagen y el porcentaje se actualizan juntos durante el gesto. Zoom y pan son solo navegación: no crean estados de Deshacer, no marcan la captura como modificada y no cambian la resolución de PNG/JPG/WebP. Deshacer/Rehacer conserva la vista actual, incluso después de acercar y mover la imagen. Zoom manual: 3%–800%. Encajar puede usar menos de 3% para mostrar completa una captura muy larga.
+
 ## Teclado / touch
 
 | Acción | Atajo |
@@ -47,7 +56,11 @@ La sesión reciente se guarda en IndexedDB `reynoso-shot`, stores `assets`, `sta
 | Encajar / cancelar | Ctrl/Cmd+0 / Escape |
 | Copiar imagen sin selección | Ctrl/Cmd+C |
 | Copiar objeto seleccionado | Ctrl/Cmd+C; Ctrl/Cmd+V dentro de Shot |
-| Zoom / pan | Ctrl/Cmd+rueda; Mover vista + arrastrar |
+| Zoom / pan | Pinch del trackpad, Ctrl/Cmd+rueda; Mover vista + arrastrar |
+| Deshacer en lienzo | Clic derecho de mouse |
+| Copiar PNG completo anotado | Ctrl/Cmd + clic derecho de mouse |
+
+Los shortcuts de clic derecho solo funcionan sobre el canvas. Ctrl/Cmd + clic derecho copia la imagen completa anotada, aunque haya un objeto seleccionado; el clic derecho simple deshace una vez por pulsación. Fuera del canvas y al editar texto/notas se conserva el menú contextual normal. Un long press táctil no deshace.
 
 Una imagen externa en Ctrl+V tiene prioridad; los objetos copiados por Shot se pegan solo cuando el portapapeles mantiene su token exacto, evitando pegar objetos viejos en lugar de texto externo. No intercepta atajos en inputs ni mientras se edita texto. Las acciones principales tienen botones táctiles; Fabric entrega controles de selección ampliados para touch. Dos dedos mueven/zoomean la vista sin dibujar; Apple Pencil usa el pointer del navegador. No hay garantías de presión ni validación en iPad físico todavía.
 
@@ -70,4 +83,4 @@ Prompt, Context, Drop, Image Lab y Transcribe son enlaces de navegación. No exi
 
 `npm run generate` conserva Shot porque `ready: true`; build copia la app completa a `dist/shot/`. `npm run check` valida catálogo/orden, rutas, hashes, historial, límites, feedback y persistencia con fake-indexeddb. `npm run check:shot:browser` valida portapapeles nativo, import múltiple, herramientas, historial, notas, PNG, recovery, censura/efectos, ZIP, combinación, carpeta fallback y layouts. El workflow Verify main incluye esta suite junto a Audio Lab y Snippets.
 
-QA de imágenes sintéticas 1920×1080, 2560×1440, 700×7000 y varias simultáneas; layouts 1920×1080, 1366×768, iPad 1180×820 / 820×1180 y 390×844. Chromium automatizado no reemplaza Safari, permisos nativos de carpeta ni iPad/Apple Pencil físico.
+QA de imágenes sintéticas 1920×1080, 2560×1440, 700×7000 y varias simultáneas; layouts 1920×1080, 1366×768, iPad 1180×820 / 820×1180 y 390×844. La regresión de viewport verifica diez pasos wheel con cambios de píxeles sin objetos, foco en el cursor, coordenadas tras zoom/pan, clic derecho, clipboard PNG anotado de 1535×862 a 300%, capturas independientes y repintado durante touchmove antes de levantar dedos. Se automatiza la representación wheel+Ctrl/Meta del pinch de trackpad; no se afirma haber probado un trackpad físico. Chromium automatizado no reemplaza Safari, permisos nativos de carpeta ni iPad/Apple Pencil físico. GitHub Pages permanece: el fallo estaba en el render local de Fabric, no en hosting.
