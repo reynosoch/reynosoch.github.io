@@ -19,6 +19,9 @@ try{
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base+'/convert/');
   await page.waitForSelector('body[data-ready=true]');
+  assert.equal(await page.locator('.window-bar .traffic i').count(),3);
+  assert.equal(await page.locator('#pick-folder').isVisible(),true);
+  assert.match(await page.locator('.window-bar').innerText(),/convert-inbox\.local/i);
 
   const csv='part,qty,cost\nABC-1,12,3.50\nXYZ-9,4,18.00\n';
   await page.setInputFiles('#file-input',{name:'inventory.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
@@ -62,8 +65,20 @@ try{
   assert.equal(pdf.suggestedFilename(),'brief.pdf');
   assert.equal(pdfBytes.subarray(0,8).toString(),'%PDF-1.4');
 
+  await page.click('#clear');
+  await page.setInputFiles('#file-input',{name:'people.json',mimeType:'application/json',buffer:Buffer.from('[{"name":"Javier","role":"dev"},{"name":"Myke","role":"agent"}]')});
+  await page.selectOption('#output-format','tsv');
+  await page.click('#convert');
+  await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
+  const tsvDownload=page.waitForEvent('download');
+  await page.click('#download-all');
+  const tsv=await tsvDownload,tsvPath=await tsv.path(),tsvText=await readFile(tsvPath,'utf8');
+  assert.equal(tsv.suggestedFilename(),'people.tsv');
+  assert.match(tsvText,/name\trole/);
+  assert.match(tsvText,/Javier\tdev/);
+
   assert.deepEqual(errors,[]);
-  console.log('Convert browser: CSV→XLSX, TXT→DOCX y TXT→PDF generan archivos reales sin subirlos.');
+  console.log('Convert browser: uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV generan resultados reales.');
 } finally {
   await browser?.close();
   await new Promise(r=>server.close(r));
