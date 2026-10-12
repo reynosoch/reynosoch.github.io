@@ -10,6 +10,8 @@ Herramientas pequeñas para quitar pasos grandes. Una colección personal para d
 
 **Toolchain contiene herramientas adoptadas:** utilidades que ya forman parte del flujo cotidiano y deben mantenerse estables. **[Reynoso LAB](https://reynosoch.github.io/reynoso-lab/) contiene experimentos:** repositorios por descubrir, inspeccionar, probar, documentar y, quizá, promover.
 
+Uso diario conserva naranja (`--accent`); las tarjetas de herramientas con nombre LAB reutilizan verde (`--lab`) mediante `data-family`, sin colores individuales inventados.
+
 Ambos sitios comparten el mismo recorrido y se distinguen por intención: **LAB usa verde** para descubrir y experimentar; **Toolchain usa naranja** para lo adoptado, mantenido y listo para volver a usar.
 
 ```text
@@ -18,11 +20,11 @@ LAB → probar → aprender → descartar o adoptar → Toolchain / proyecto / f
 
 Los proyectos externos no se copian aquí. LAB conserva su registro y sus notas; Toolchain recibe únicamente una herramienta cuando ya demostró ser útil y merece mantenimiento propio.
 
-La portada es un acceso de trabajo, con el mismo sistema Liquid Glass de LAB: superficies translúcidas, brillo interno, profundidad, radios y navegación compartidos. Toolchain conserva el acento naranja y usa iconos locales seleccionados de Lucide 1.55.0; su licencia vive en `shared/LUCIDE_LICENSE.txt`. No es un portfolio. **Drop, Transcribe, Audio Lab y Snippets están LISTO**; las otras **18 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
+La portada es un acceso de trabajo, con el mismo sistema Liquid Glass de LAB: superficies translúcidas, brillo interno, profundidad, radios y navegación compartidos. Toolchain conserva el acento naranja y usa iconos locales seleccionados de Lucide 1.55.0; su licencia vive en `shared/LUCIDE_LICENSE.txt`. No es un portfolio. **Drop, Transcribe, Audio Lab, Snippets y Shot están LISTO**; las otras **17 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
 
 ## Accesos directos para favoritos
 
-La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta con `index.html` y una URL estable; no depende de query strings ni de routing SPA. El título de cada pestaña es **`<Herramienta> · Reynoso Toolchain`**. Drop, Transcribe, Audio Lab y Snippets, todos los placeholders, sus headers y sus accesos de regreso llevan al landing.
+La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta con `index.html` y una URL estable; no depende de query strings ni de routing SPA. El título de cada pestaña es **`<Herramienta> · Reynoso Toolchain`**. Drop, Transcribe, Audio Lab, Snippets y Shot, todos los placeholders, sus headers y sus accesos de regreso llevan al landing.
 
 <!-- TOOLCHAIN_CATALOG_START -->
 | Herramienta | Estado | URL | Propósito |
@@ -42,7 +44,7 @@ La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta c
 | Image Lab | EN DESARROLLO | [Abrir Image Lab](https://reynosoch.github.io/image/) | Ajusta una imagen y sigue trabajando. |
 | Audio Lab | LISTO | [Abrir Audio Lab](https://reynosoch.github.io/audio/) | Limpia una grabación y déjala lista para Transcribe. |
 | PDF Lab | EN DESARROLLO | [Abrir PDF Lab](https://reynosoch.github.io/pdf/) | Las páginas que necesitas, en orden. |
-| Shot | EN DESARROLLO | [Abrir Shot](https://reynosoch.github.io/shot/) | Una captura que explica el problema. |
+| Shot | LISTO | [Abrir Shot](https://reynosoch.github.io/shot/) | Marca capturas y devuelve feedback a tu IA. |
 | Encode | EN DESARROLLO | [Abrir Encode](https://reynosoch.github.io/encode/) | Codifica, decodifica y verifica. |
 | QR | EN DESARROLLO | [Abrir QR](https://reynosoch.github.io/qr/) | De un enlace a un QR. Y de regreso. |
 | Convert | EN DESARROLLO | [Abrir Convert](https://reynosoch.github.io/convert/) | Cambia el formato, conserva la idea. |
@@ -53,22 +55,24 @@ La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta c
 
 ### Uso diario
 
-Arriba aparecen **Drop, Transcribe, Inspect, Diff y Context**. En estos cinco accesos, Drop y Transcribe están disponibles. Snippets está listo en Personal y Audio Lab en Archivos. Las tres futuras llevan a sus páginas de alcance y ejemplos. Cada herramienta se presenta **una vez**, sin duplicar tarjetas en otra categoría.
+Arriba aparecen **Drop, Transcribe, Inspect, Diff, Context y Shot**, con 3×2 en laptop/iPad, seis columnas solo en pantallas amplias y una columna en móvil pequeño. En estos seis accesos, Drop, Transcribe y Shot están disponibles. Snippets está listo en Personal y Audio Lab en Archivos. Las tres futuras llevan a sus páginas de alcance y ejemplos. Cada herramienta se presenta **una vez**, sin duplicar tarjetas en otra categoría.
 
 ### Categorías
 
 | Categoría | Herramientas |
 | --- | --- |
-| Uso diario | Drop, Transcribe; accesos destacados a Inspect, Diff y Context |
+| Uso diario | Drop, Transcribe, Shot; accesos destacados a Inspect, Diff y Context |
 | Datos | Inspect, Diff, Clean, SQL Lab |
 | Desarrollo | Context, Prompt, JSON Lab, API Lab, Regex, Code Lab |
-| Archivos | Image Lab, Audio Lab, PDF Lab, Shot |
+| Archivos | Image Lab, Audio Lab, PDF Lab |
 | Utilidades | Encode, QR, Convert |
 | Personal | Error Vault, Snippets, Projects |
 
 Inspect, Diff y Context se muestran en Uso diario; las secciones Datos y Desarrollo indican dónde están sin crear otra tarjeta. La búsqueda y los filtros de estado incluyen las 22 herramientas.
 
 ## Herramientas listas
+
+- **[Shot](https://reynosoch.github.io/shot/)**: anota screenshots para feedback de desarrollo e IA. Ctrl+V, varias capturas, flechas/texto/callouts con notas, historial, censura plana, recorte, zoom/touch, copia PNG/feedback, ZIP y comparativas. [Documentación de Shot](shot/README.md).
 
 - **[Snippets](https://reynosoch.github.io/snippets/)**: biblioteca local de 56 comandos y recetas, búsqueda por tarea, detalle, favoritos, recientes, CRUD, import/export JSON y copia protegida de destructivos. [Documentación de Snippets](snippets/README.md).
 
@@ -88,11 +92,11 @@ shared/catalog.mjs             Nombres, rutas, estados, briefs y relaciones
 shared/icons.mjs               Iconos SVG Lucide locales y glifos de herramientas
 shared/search.mjs              Búsqueda de texto sin dependencias
 shared/toolchain-nav.css        Header compartido de apps
-drop/, transcribe/, audio/, snippets/  Apps funcionales, pruebas y documentación
+drop/, transcribe/, audio/, snippets/, shot/  Apps funcionales, pruebas y documentación
 inspect/, diff/, clean/, sql/   Datos
 context/, prompt/, json/        Desarrollo
 api/, regex/, code/            Desarrollo
-image/, pdf/, shot/            Archivos futuros
+image/, pdf/                   Archivos futuros
 encode/, qr/, convert/          Utilidades
 errors/, projects/             Personal (futuras)
 scripts/                       Generación, rutas, validación y build
@@ -102,13 +106,13 @@ tests/                         Contratos del catálogo y filtros
 
 Los placeholders son HTML estático con descripción, alcance, ejemplos, estado, enlaces relacionados y botón para volver. Comparten `hub.css`; no tienen workers, dependencias, bases de datos ni controles de procesamiento falsos. Cada carpeta también tiene su README.
 
-`shared/catalog.mjs` es la fuente de datos para nombres, estados y planes. `npm run generate` genera la portada, las 18 páginas/README de futuro y la tabla anterior. Los templates viven en `scripts/generate-toolchain.mjs`; editar allí la estructura de páginas generadas. **El generador nunca modifica los motores ni el HTML de las herramientas listas.** Solo copia el CSS de header a `drop/toolchain-nav.css` para mantenerlo disponible offline dentro del scope PWA.
+`shared/catalog.mjs` es la fuente de datos para nombres, estados y planes. `npm run generate` genera la portada, las 17 páginas/README de futuro y la tabla anterior. Los templates viven en `scripts/generate-toolchain.mjs`; editar allí la estructura de páginas generadas. **El generador nunca modifica los motores ni el HTML de las herramientas listas.** Solo copia el CSS de header a `drop/toolchain-nav.css` para mantenerlo disponible offline dentro del scope PWA.
 
 ## Agregar o implementar una herramienta
 
 1. Registrar nombre, `id` (carpeta), categoría, resumen, propósito, features, ejemplos y relaciones en `shared/catalog.mjs`.
 2. Mientras sea placeholder, dejar `ready` falso/ausente y ejecutar `npm run generate`; se crean ruta, README y entrada en portada y tabla.
-3. Al implementar, marcar `ready: true` y crear la app en su carpeta. Ajustar el build para empaquetarla como se hace con Drop, Transcribe, Audio Lab y Snippets. Mantener el título, favicon, retorno al Toolchain y URL.
+3. Al implementar, marcar `ready: true` y crear la app en su carpeta. Ajustar el build para empaquetarla como se hace con Drop, Transcribe, Audio Lab, Snippets y Shot. Mantener el título, favicon, retorno al Toolchain y URL.
 4. Cargar librerías solo desde la app correspondiente; nada de futuros modelos, DuckDB, editores o conversiones en el landing.
 5. Documentar uso, límites, tratamiento de datos y validación. Ejecutar check/build, push a main y verificar CI/Pages.
 
@@ -127,12 +131,13 @@ Cada intercambio debe definirse como contrato explícito de payload/versionado, 
 - Transcribe puede guardar una recuperación de texto generado/avance en su propio IndexedDB solo con autorización; no almacena audio y ofrece borrar la recuperación.
 - Snippets guarda comandos personalizados, favoritos y uso en IndexedDB propio (`reynoso-snippets`); exportación JSON manual para moverlos entre equipos. Su worker solo cachea su shell local.
 - Audio Lab guarda análisis/ajustes/hash optativos en su IndexedDB separado. El WAV preparado usa un temporal OPFS autorizado o Blob acotado; se limpia al retirar/cancelar/cerrar y tras recargar la misma pestaña. Un cierre abrupto puede dejar temporales propios que se limpian a las 24 horas. No archiva la fuente ni registra service worker.
+- Shot guarda una sesión reciente en IndexedDB propio (`reynoso-shot`), hasta 7 días desde el último cambio, 30 capturas y 128 MB de fuentes comprimidas. Imágenes y objetos se guardan separados; historial estructural de hasta 80 estados / 3 MB por captura. La carpeta recordada requiere permiso al reabrir/escanear; no se sondea automáticamente. Borrar sesión libera sus capturas; no toca otras herramientas.
 - No se suben archivos transferidos, transcritos ni datasets a GitHub. Las futuras herramientas no procesan ni guardan datos todavía.
 - Los motores actuales mantienen sus condiciones de red/códecs y límites documentados; “LISTO” indica disponibilidad de la app, no compatibilidad garantizada con cualquier archivo o red corporativa.
 
 ## Diseño, rendimiento y dispositivos
 
-UI HTML/CSS/JS nativos, sin frameworks. Audio Lab tiene motores locales vendorizados/fijados y carga autorizada por herramienta (Silero/ONNX/RNNoise). Las dependencias de desarrollo fake-indexeddb y Playwright solo validan persistencia e interfaz de Snippets. Glass con fondo denso, reflejo/borde sutil, blur real y fallback opaco; fondos sin animación y transiciones de 150–160 ms. Layouts para laptop, desktop, iPad horizontal/vertical y móvil con targets táctiles, navegación sin hover obligatorio, `prefers-reduced-motion` y `prefers-reduced-transparency`.
+UI HTML/CSS/JS nativos, sin frameworks. Audio Lab tiene motores locales vendorizados/fijados y carga autorizada por herramienta (Silero/ONNX/RNNoise). fake-indexeddb y Playwright validan persistencia e interfaces; Shot usa el bundle local de Fabric para el editor y JSZip para paquetes. Glass con fondo denso, reflejo/borde sutil, blur real y fallback opaco; fondos sin animación y transiciones de 150–160 ms. Layouts para laptop, desktop, iPad horizontal/vertical y móvil con targets táctiles, navegación sin hover obligatorio, `prefers-reduced-motion` y `prefers-reduced-transparency`.
 
 Validación: suites funcionales de Drop/Transcribe/Toolchain, pruebas adicionales de Snippets sobre búsqueda, tecnología, IndexedDB, favoritos, contadores concurrentes, import/export atómico, seguridad, recetas y aislamiento del worker; títulos/enlaces de las 23 páginas. `npm run check:browser` verifica las interacciones de Snippets y layouts desktop/iPad/móvil en Chromium. Audio Lab se verifica además con motores reales en Chromium, voz y archivos sintéticos de 30 s, 6 min y 60 min; detalles en su README. No sustituye iPad físico, Safari, redes WebRTC ni la junta corporativa real.
 
@@ -145,16 +150,16 @@ npm run check
 npm run build
 ```
 
-`npm ci` instala solo las dependencias de pruebas. La app publicada no carga paquetes npm. `check` conserva suites de Drop y Transcribe y agrega validación de catálogo/búsqueda, todas las rutas y títulos, enlaces de regreso, recursos de cada página y shell/manifest PWA. También comprueba que la generación está sincronizada con lo que se publica. `build` produce `dist/` con el landing, estilos compartidos, las cuatro apps y las 18 rutas futuras; `dist/` no se sube.
+`npm ci` instala las dependencias de pruebas y build. Shot distribuye bundles locales fijados de Fabric.js 7.4.0 (MIT, 286 KB) y JSZip 3.10.2 (MIT, 99 KB); no carga CDN en runtime. `npm run vendor:shot` los reconstruye con esbuild 0.28.2. `check` conserva suites de Drop y Transcribe y agrega validación de catálogo/búsqueda, todas las rutas y títulos, enlaces de regreso, recursos de cada página y shell/manifest PWA. También comprueba que la generación está sincronizada con lo que se publica. `build` produce `dist/` con el landing, estilos compartidos, las cinco apps y las 17 rutas futuras; `dist/` no se sube.
 
-GitHub Pages continúa publicando **`main / (root)`** con `.nojekyll`. **Verify main** ejecuta `npm ci`, `npm run check`, `npm run build` y las suites de navegador de Snippets y Audio Lab con motores reales en cada push. El despliegue Pages existente publica `main`. El contenido generado se versiona para que las rutas también funcionen al publicarse desde la raíz.
+GitHub Pages continúa publicando **`main / (root)`** con `.nojekyll`. **Verify main** ejecuta `npm ci`, `npm run check`, `npm run build` y las suites de navegador de Snippets, Audio Lab con motores reales y Shot en cada push. El despliegue Pages existente publica `main`. El contenido generado se versiona para que las rutas también funcionen al publicarse desde la raíz.
 
 Los archivos antiguos de SmartFit/.NET ya se retiraron en la migración anterior y siguen recuperables en el historial.
 
 ## AGENT_CONTEXT
 
 - Este repositorio es **Reynoso Toolchain**, centro de herramientas personales. Trabajar directamente en `main`, sin PR ni repositorios extra cuando el usuario lo indique. Leer este README completo y el README de la herramienta; revisar commits antes de editar.
-- Drop, Transcribe, Audio Lab y Snippets están disponibles actualmente. Las 18 futuras son briefs/placeholder; no implementar sus motores sin una solicitud específica ni marcarlas LISTO antes de verificar su funcionalidad.
+- Drop, Transcribe, Audio Lab, Snippets y Shot están disponibles actualmente. Las 17 futuras son briefs/placeholder; no implementar sus motores sin una solicitud específica ni marcarlas LISTO antes de verificar su funcionalidad.
 - Una carpeta/URL estable por herramienta, título de favoritos `<Nombre> · Reynoso Toolchain`, favicon y retorno claro al landing. No routing SPA ni URLs de herramienta basadas en queries.
 - Mantener catálogo, generador, portada, READMEs y build sincronizados. Nuevas herramientas deben tener acceso directo Pages en la tabla.
 - No borrar ni simplificar funciones, tests, PWA, sesión, QR, WebRTC, motores, dependencias o licencias de Drop/Transcribe para rediseñar el landing.

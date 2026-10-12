@@ -6,8 +6,8 @@ test('catalog exposes the requested stable routes without duplicate or fake read
   const routes=['drop','transcribe','inspect','diff','clean','sql','context','prompt','json','api','regex','code','image','audio','pdf','shot','encode','qr','convert','errors','snippets','projects'];
   assert.deepEqual(tools.map(tool=>tool.id),routes);
   assert.equal(new Set(tools.map(tool=>tool.id)).size,22);
-  assert.deepEqual(tools.filter(tool=>tool.ready).map(tool=>tool.id),['drop','transcribe','audio','snippets']);
-  assert.equal(tools.filter(tool=>!tool.ready).length,18);
+  assert.deepEqual(tools.filter(tool=>tool.ready).map(tool=>tool.id),['drop','transcribe','audio','shot','snippets']);
+  assert.equal(tools.filter(tool=>!tool.ready).length,17);
   for(const tool of tools) {
     assert.ok(/^[a-z]+$/.test(tool.id)); assert.ok(categories.some(category=>category.id===tool.category));
     assert.ok(tool.summary&&tool.purpose&&tool.features.length&&tool.examples.length);
@@ -15,7 +15,7 @@ test('catalog exposes the requested stable routes without duplicate or fake read
   }
 });
 test('daily tools have the agreed order and future flow relationships remain possible',()=>{
-  assert.deepEqual(dailyOrder,['drop','transcribe','inspect','diff','context']);
+  assert.deepEqual(dailyOrder,['drop','transcribe','inspect','diff','context','shot']);
   assert.deepEqual(tools.filter(tool=>tool.daily).map(tool=>tool.id).sort(),[...dailyOrder].sort());
   for(const [from,to] of [['inspect','clean'],['clean','diff'],['diff','drop'],['audio','transcribe'],['transcribe','drop'],['shot','transcribe'],['shot','context'],['transcribe','context']]) assert.ok(tools.find(tool=>tool.id===from).related.includes(to));
 });

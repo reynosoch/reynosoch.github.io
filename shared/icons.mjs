@@ -14,7 +14,7 @@ const paths = {
   image:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-7 5 8"/>',
   audio:'<path d="M4 9v6m4-11v16m4-13v10m4-14v18m4-12v6"/>',
   pdf:'<path d="M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8M8 16h8"/>',
-  shot:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M8 12h8m-4-4v8"/>',
+  shot:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5m8 15 7-7 3 3-7 7-4 1 1-4Z"/>',
   encode:'<path d="M9 3 6 21M18 3l-3 18M3 8h18M2 16h18"/>',
   qr:'<path d="M3 3h6v6H3Zm12 0h6v6h-6ZM3 15h6v6H3Zm12 0h3v3h3v3h-6v-3m6-3h.01M12 3v2M3 12h2m7 0h3m-3 6v3"/>',
   convert:'<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',

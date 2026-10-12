@@ -1,0 +1,20 @@
+[
+  {
+    "file": "fabric-7.4.0.mjs",
+    "version": "7.4.0",
+    "bytes": 286133,
+    "sha256": "49a0460872ca2c3246ec22d3038ce27093cc21e927eb8a5a16e3d0c7c02bad7f",
+    "licenses": [
+      "fabric.LICENSE"
+    ]
+  },
+  {
+    "file": "jszip-3.10.2.mjs",
+    "version": "3.10.2",
+    "bytes": 98784,
+    "sha256": "87bb553c0f5cf946bb1e5acc5f861ca659f8af727b61bdc8846606819fa53e81",
+    "licenses": [
+      "jszip.LICENSE"
+    ]
+  }
+]
