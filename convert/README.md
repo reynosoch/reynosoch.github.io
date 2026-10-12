@@ -1,20 +1,56 @@
 # Convert · Reynoso Toolchain
 
-**EN DESARROLLO** · [Abrir página](https://reynosoch.github.io/convert/) · [Volver al Toolchain](https://reynosoch.github.io/)
+**LISTO (implementación standalone)** · [Abrir Convert](https://reynosoch.github.io/convert/) · [Volver al Toolchain](https://reynosoch.github.io/)
 
-Convertir unidades, valores y texto en el formato que necesitas para seguir trabajando.
+Convert es el conversor de archivos de Reynoso Toolchain: documentos, hojas, imágenes y texto entran en una misma cola y pueden salir como PDF, DOCX, XLSX, CSV, TXT, HTML, JSON, PNG, JPG o WebP según el contenido disponible.
 
-## Alcance previsto
+## Flujo
 
-- Unidades, bytes y timestamps
-- HEX, RGB y HSL
-- Mayúsculas/minúsculas, slug, texto y formatos
+1. Arrastra, selecciona o pega archivos.
+2. Elige un formato de salida.
+3. Convierte uno o varios archivos.
+4. Descarga cada resultado o un ZIP con todos.
 
-## Ejemplos
+## Entradas
 
-- Convertir un tamaño de bytes a MB.
-- Pasar un color HEX a RGB o preparar un slug.
+- PDF
+- DOCX
+- XLSX y XLS moderno basado en XML (XLS binario antiguo requiere guardarse como XLSX o CSV)
+- CSV y TSV
+- TXT, Markdown, HTML, JSON, XML, YAML, LOG y RTF básico
+- ODT, ODS y PPTX mediante lectura de su XML interno
+- PNG, JPG/JPEG, WebP, GIF y BMP
 
-## Desarrollo
+## Salidas
 
-Este es un placeholder; todavía no realiza procesamiento. No cargar librerías ni guardar datos de esta herramienta antes de implementarla. El HTML y este README se generan desde `shared/catalog.mjs` con `npm run generate`. Leer el README raíz y AGENT_CONTEXT antes de modificar. Mantener URL `/convert/`, título de favoritos, navegación al landing y aislamiento de cualquier futuro service worker.
+- PDF
+- DOCX
+- XLSX
+- CSV
+- TXT
+- HTML
+- JSON
+- PNG
+- JPG
+- WebP
+
+## Privacidad y motores
+
+El procesamiento principal ocurre en el navegador. Los archivos no se suben a Reynoso Toolchain ni se guardan en GitHub. DOCX/XLSX/ODT/ODS/PPTX usan ZIP/XML local y JSZip vendorizado desde Shot. Las conversiones que necesitan leer el contenido interno de un PDF usan PDF.js desde jsDelivr; si una red corporativa bloquea ese CDN, esas conversiones muestran un error explícito sin afectar el resto del motor.
+
+## Límites actuales
+
+- La lectura XLSX toma la primera hoja.
+- Los formatos Office complejos se convierten priorizando contenido y estructura básica, no fidelidad pixel-perfect.
+- XLS binario antiguo (`.xls`) no se interpreta todavía.
+- PDF → contenido editable depende de PDF.js.
+- Convert no reemplaza LibreOffice/Word/Excel para macros, fórmulas avanzadas, SmartArt, fuentes embebidas o layouts complejos.
+
+## Arquitectura
+
+- `index.html`: interfaz y selector de formatos.
+- `styles.css`: layout Liquid Glass responsive.
+- `app.mjs`: cola, parsers y generadores locales.
+- `../shot/vendor/jszip-3.10.2.mjs`: ZIP local reutilizado para Office y descargas batch.
+
+Convert se conserva fuera del generador de placeholders mediante `standaloneReady` en `scripts/generate-toolchain.mjs` y `scripts/build-site.mjs`; así `npm run generate` no pisa la implementación real mientras el catálogo histórico todavía conserva la entrada `convert`.
