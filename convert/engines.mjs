@@ -14,7 +14,14 @@ export const engines={
   docx:()=>load('docx','https://cdn.jsdelivr.net/npm/docx@9.5.1/+esm'),
   pptx:()=>load('pptx','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/+esm'),
   heic:()=>load('heic','https://cdn.jsdelivr.net/npm/heic2any@0.0.4/+esm'),
-  pdfLib:()=>load('pdf-lib','https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm')
+  pdfLib:()=>load('pdf-lib','https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm'),
+  pdfEncrypt:()=>load('pdf-lib-plus-encrypt','https://cdn.jsdelivr.net/npm/pdf-lib-plus-encrypt@1.1.0/+esm'),
+  pdfjs:async()=>{
+    const pdfjs=await load('pdfjs','https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs');
+    pdfjs.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';
+    return pdfjs;
+  },
+  tesseract:()=>load('tesseract','https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm')
 };
 
 export async function optional(engine,label){
