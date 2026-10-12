@@ -19,9 +19,29 @@ try{
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base+'/convert/');
   await page.waitForSelector('body[data-ready=true]');
+  await page.waitForSelector('body[data-pdf-tools=ready]');
   assert.equal(await page.locator('.window-bar .traffic i').count(),3);
   assert.equal(await page.locator('#pick-folder').isVisible(),true);
   assert.match(await page.locator('.window-bar').innerText(),/convert-inbox\.local/i);
+
+  assert.equal(await page.locator('.pdf-tool-card').count(),30);
+  assert.equal(await page.locator('.pdf-tool-card .tool-icon').count(),30);
+  assert.match(await page.locator('#pdf-suite').innerText(),/Unir PDF/);
+  assert.match(await page.locator('#pdf-suite').innerText(),/Proteger PDF/);
+  assert.match(await page.locator('#pdf-suite').innerText(),/OCR PDF/);
+  assert.match(await page.locator('#pdf-suite').innerText(),/Flujos/);
+  assert.doesNotMatch(await page.locator('body').innerText(),/[⌁↥]/);
+
+  await page.click('[data-pdf-tool="pdf-word"]');
+  assert.equal(await page.locator('#output-format').inputValue(),'docx');
+  await page.click('[data-pdf-filter="security"]');
+  assert.equal(await page.locator('.pdf-tool-card:visible').count(),3);
+  await page.click('[data-pdf-filter="all"]');
+  await page.click('[data-pdf-tool="merge"]');
+  assert.equal(await page.locator('#pdf-tool-dialog').evaluate(el=>el.open),true);
+  assert.equal(await page.locator('#pdf-tool-dialog svg').count()>0,true);
+  await page.click('#pdf-tool-close');
+  assert.equal(await page.locator('#pdf-tool-dialog').evaluate(el=>el.open),false);
 
   const csv='part,qty,cost\nABC-1,12,3.50\nXYZ-9,4,18.00\n';
   await page.setInputFiles('#file-input',{name:'inventory.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
@@ -78,7 +98,7 @@ try{
   assert.match(tsvText,/Javier\tdev/);
 
   assert.deepEqual(errors,[]);
-  console.log('Convert browser: uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV generan resultados reales.');
+  console.log('Convert browser: PDF Studio + iconos + uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV verificados.');
 } finally {
   await browser?.close();
   await new Promise(r=>server.close(r));
