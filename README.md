@@ -6,6 +6,16 @@ Herramientas pequeñas para quitar pasos grandes. Una colección personal para d
 
 **Abrir → hacer una tarea → copiar, descargar o enviar → continuar trabajando.**
 
+## Toolchain y LAB
+
+**Toolchain contiene herramientas adoptadas:** utilidades que ya forman parte del flujo cotidiano y deben mantenerse estables. **[Reynoso LAB](https://reynosoch.github.io/reynoso-lab/) contiene experimentos:** repositorios por descubrir, inspeccionar, probar, documentar y, quizá, promover.
+
+```text
+LAB → probar → aprender → descartar o adoptar → Toolchain / proyecto / fork
+```
+
+Los proyectos externos no se copian aquí. LAB conserva su registro y sus notas; Toolchain recibe únicamente una herramienta cuando ya demostró ser útil y merece mantenimiento propio.
+
 La portada es un acceso de trabajo, con estilo Liquid Glass sobrio, texto de alto contraste y búsqueda por tarea. No es un portfolio. **Drop, Transcribe, Audio Lab y Snippets están LISTO**; las otras **18 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
 
 ## Accesos directos para favoritos
