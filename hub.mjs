@@ -7,12 +7,22 @@ const runtimeReady=new Set(['convert']);
 for(const card of cards){
   if(!runtimeReady.has(card.dataset.tool))continue;
   card.dataset.ready='true';
+  card.dataset.search+=' PDF Word DOCX Excel XLSX CSV documentos archivos imagenes convertir conversion';
   card.classList.remove('planned');
   card.classList.add('available');
   const badge=card.querySelector('.state');
   if(badge){badge.className='state is-ready';badge.innerHTML='<i aria-hidden="true"></i>LISTO';}
   const action=card.querySelector('.card-action');
   if(action?.firstChild)action.firstChild.textContent='Abrir herramienta ';
+  const summary=card.querySelector('.row-copy p');
+  if(summary)summary.textContent='PDF, Word, Excel, imágenes y texto entre formatos.';
+  const filesRows=document.querySelector('[aria-labelledby="category-files"] .tool-rows');
+  if(filesRows&&card.closest('.tool-rows')!==filesRows)filesRows.append(card);
+}
+for(const group of document.querySelectorAll('.category-group')){
+  const count=group.querySelectorAll('.tool-row').length;
+  const label=group.querySelector('.category-count');
+  if(label)label.textContent=String(count);
 }
 let state='all';
 function filter() {
