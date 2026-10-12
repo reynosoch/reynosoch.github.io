@@ -69,7 +69,7 @@ export class Editor {
   const g=this.wheelGesture;if(!g)return;this.wheelGesture=null;
   if(g.zooming){
    const zoomDelta=Math.max(-220,Math.min(220,g.dy));
-   this.zoom(Math.exp(-.00115*zoomDelta),g.point);
+   this.zoom(Math.exp(-.0015*zoomDelta),g.point);
    const lateral=Math.max(-180,Math.min(180,g.dx));
    if(Math.abs(lateral)>.05)this.panBy(-lateral,0);
   }else{
