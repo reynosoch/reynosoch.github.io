@@ -72,7 +72,7 @@ Inspect, Diff y Context se muestran en Uso diario; las secciones Datos y Desarro
 
 ## Herramientas listas
 
-- **[Shot](https://reynosoch.github.io/shot/)**: anota screenshots para feedback de desarrollo e IA. Ctrl+V, varias capturas, flechas/texto/callouts con notas, historial, censura plana, recorte, zoom/touch en tiempo real, clic derecho para deshacer y Ctrl/Cmd + clic derecho para copiar PNG, copia PNG/feedback, ZIP y comparativas. [Documentación de Shot](shot/README.md).
+- **[Shot](https://reynosoch.github.io/shot/)**: anota screenshots para feedback de desarrollo e IA. Ctrl+V, varias capturas, flechas/texto/callouts con notas, historial, censura plana, recorte, borrador de anotaciones, zoom/touch en tiempo real y navegación con trackpad o Ctrl + arrastrar, clic derecho para deshacer y Ctrl/Cmd + clic derecho para copiar PNG, copia PNG/feedback, ZIP y comparativas. [Documentación de Shot](shot/README.md).
 
 - **[Snippets](https://reynosoch.github.io/snippets/)**: biblioteca local de 56 comandos y recetas, búsqueda por tarea, detalle, favoritos, recientes, CRUD, import/export JSON y copia protegida de destructivos. [Documentación de Snippets](snippets/README.md).
 

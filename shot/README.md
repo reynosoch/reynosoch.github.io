@@ -20,6 +20,10 @@ Blur, Pixelar y Redactar son regiones editables. Redactar usa siempre un bloque 
 
 Recortar: arrastra una zona, ajusta sus controles y pulsa Aplicar recorte. El recorte no modifica la fuente; la exportación limita la salida a esa área. Deshacer/Rehacer cubre objetos, transformaciones, propiedades, texto, notas y recorte, con ramificación y límite de 80 estados o 3 MB de JSON por captura. No duplica bitmaps en cada estado. El historial se reinicia al recuperar la sesión; las anotaciones finales sí sobreviven F5.
 
+### Borrador de anotaciones
+
+B o el botón Borrador: mantén pulsado y pasa sobre flechas, texto, formas, dibujos o marcadores para quitar los elementos completos. No borra píxeles de la captura original. Detecta trazos y rellenos reales; pasar por el hueco de un rectángulo no lo elimina. Una pasada forma un solo paso de Deshacer, incluyendo las notas de los marcadores eliminados. Escape o un gesto cancelado restaura la pasada en curso. Funciona con zoom, mouse, touch y Pencil/pointer; no requiere seleccionar cada objeto.
+
 ## Varias capturas y exportación
 
 Cada captura mantiene anotaciones e historial independientes. La tira permite seleccionar, renombrar, duplicar, reordenar y eliminar (con confirmación si tiene cambios). En móvil conserva estas acciones al seleccionar una captura y usar las opciones de la tira. Hasta 30 capturas / 128 MB de archivos fuente; el límite de fuente es conservador y cuenta duplicados.
@@ -38,7 +42,9 @@ La sesión reciente se guarda en IndexedDB `reynoso-shot`, stores `assets`, `sta
 
 ## Zoom y navegación
 
-- Pinch del trackpad o Ctrl/Cmd + rueda: zoom en tiempo real al punto del cursor.
+- Pinch del trackpad o Ctrl/Cmd + rueda: zoom en tiempo real al punto del cursor, con respuesta un poco más rápida.
+- Desplazar dos dedos en el trackpad (sin Ctrl/Cmd): mover la imagen en horizontal/vertical; la rueda también desplaza dentro del lienzo. Fuera del editor se conserva el scroll normal.
+- Ctrl/Cmd + clic izquierdo y arrastrar: mover la vista temporalmente, incluso con selección, dibujo o borrador activos. Al soltar vuelve la herramienta.
 - Pinch con dos dedos dentro del lienzo: acercar/alejar; mover ambos dedos: pan.
 - + / −: cambiar zoom; Encajar: mostrar la captura; 100%: tamaño 1:1.
 - Mover vista: arrastrar con mouse; un dedo sigue usando la herramienta elegida, dos dedos toman temporalmente la vista. Al terminar vuelve la herramienta anterior.
@@ -50,13 +56,13 @@ La imagen y el porcentaje se actualizan juntos durante el gesto. Zoom y pan son 
 | Acción | Atajo |
 | --- | --- |
 | Seleccionar / flecha / rectángulo / elipse | V / A / R / E |
-| Dibujar / resaltar / texto / número | P / H / T / N |
+| Dibujar / resaltar / texto / número / borrador | P / H / T / N / B |
 | Deshacer / rehacer | Ctrl/Cmd+Z / Shift+Z o Y |
 | Duplicar / borrar | Ctrl/Cmd+D / Delete o Backspace |
 | Encajar / cancelar | Ctrl/Cmd+0 / Escape |
 | Copiar imagen sin selección | Ctrl/Cmd+C |
 | Copiar objeto seleccionado | Ctrl/Cmd+C; Ctrl/Cmd+V dentro de Shot |
-| Zoom / pan | Pinch del trackpad, Ctrl/Cmd+rueda; Mover vista + arrastrar |
+| Zoom / pan | Pinch o Ctrl/Cmd+rueda; dos dedos del trackpad; Ctrl/Cmd+arrastrar |
 | Deshacer en lienzo | Clic derecho de mouse |
 | Copiar PNG completo anotado | Ctrl/Cmd + clic derecho de mouse |
 
