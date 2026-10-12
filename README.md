@@ -18,7 +18,7 @@ LAB → probar → aprender → descartar o adoptar → Toolchain / proyecto / f
 
 Los proyectos externos no se copian aquí. LAB conserva su registro y sus notas; Toolchain recibe únicamente una herramienta cuando ya demostró ser útil y merece mantenimiento propio.
 
-La portada es un acceso de trabajo, con estilo Liquid Glass sobrio, texto de alto contraste y búsqueda por tarea. No es un portfolio. **Drop, Transcribe, Audio Lab y Snippets están LISTO**; las otras **18 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
+La portada es un acceso de trabajo, con el mismo sistema Liquid Glass de LAB: superficies translúcidas, brillo interno, profundidad, radios y navegación compartidos. Toolchain conserva el acento naranja y usa iconos locales seleccionados de Lucide 1.55.0; su licencia vive en `shared/LUCIDE_LICENSE.txt`. No es un portfolio. **Drop, Transcribe, Audio Lab y Snippets están LISTO**; las otras **18 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
 
 ## Accesos directos para favoritos
 
@@ -85,7 +85,7 @@ Drop se migró desde `reynosoch/reynoso-drop` (`d74c31e`). El repositorio antigu
 index.html, hub.css, hub.mjs    Landing, diseño y filtros ligeros
 favicon.svg                    Identidad Reynoso
 shared/catalog.mjs             Nombres, rutas, estados, briefs y relaciones
-shared/icons.mjs               Iconos SVG ligeros
+shared/icons.mjs               Iconos SVG Lucide locales y glifos de herramientas
 shared/search.mjs              Búsqueda de texto sin dependencias
 shared/toolchain-nav.css        Header compartido de apps
 drop/, transcribe/, audio/, snippets/  Apps funcionales, pruebas y documentación

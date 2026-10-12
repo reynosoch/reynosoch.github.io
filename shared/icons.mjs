@@ -21,5 +21,13 @@ const paths = {
   errors:'<path d="M3 4h18v16H3ZM3 9h18M12 12v3m0 2h.01"/>',
   snippets:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 8 4 4-4 4m6 0h4"/>',
   projects:'<path d="M3 6V3h7l3 3h8v15H3ZM3 10h18"/>',
+  'arrow-up-right':'<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+  'arrow-right':'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'arrow-left':'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  'external-link':'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  'circle-plus':'<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>',
+  'clock-3':'<circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
 };
-export const icon = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[id] || paths.projects}</svg>`;
+// UI glyphs use Lucide 1.55.0 paths (ISC). See shared/LUCIDE_LICENSE.txt.
+export const icon = (id, className='') => `<svg${className?` class="${className}"`:''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[id] || paths.projects}</svg>`;
