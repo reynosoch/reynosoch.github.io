@@ -3,6 +3,17 @@ const search=document.getElementById('tool-search');
 const cards=[...document.querySelectorAll('[data-tool]')];
 const groups=[...document.querySelectorAll('[data-tool-group]')];
 const buttons=[...document.querySelectorAll('[data-state-filter]')];
+const runtimeReady=new Set(['convert']);
+for(const card of cards){
+  if(!runtimeReady.has(card.dataset.tool))continue;
+  card.dataset.ready='true';
+  card.classList.remove('planned');
+  card.classList.add('available');
+  const badge=card.querySelector('.state');
+  if(badge){badge.className='state is-ready';badge.innerHTML='<i aria-hidden="true"></i>LISTO';}
+  const action=card.querySelector('.card-action');
+  if(action?.firstChild)action.firstChild.textContent='Abrir herramienta ';
+}
 let state='all';
 function filter() {
   let count=0;
