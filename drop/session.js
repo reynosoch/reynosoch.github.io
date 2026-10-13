@@ -1,3 +1,5 @@
+import './jot-handoff.js';
+
 const SESSION_KEY = 'reynoso-drop:session-v1';
 const DEVICE_KEY = 'reynoso-drop:device-name';
 const DRAFT_KEY = 'reynoso-drop:text-draft';
