@@ -1,10 +1,10 @@
 // Caches belong to this tool and scope; other tools share the Pages origin.
 const CACHE_PREFIX = `reynoso-drop:${self.registration.scope}:`;
-const CACHE = `${CACHE_PREFIX}v1.7.2`;
+const CACHE = `${CACHE_PREFIX}v1.7.3`;
 const SCOPE = new URL(self.registration.scope);
 const SHELL = [
   './', './index.html', './styles.css', './toolchain-nav.css', './theme.css', './favicon.svg', './manifest.webmanifest',
-  './app.js', './session.js', './protocol.js', './files.js', './clipboard.js', './qr.js', './devices.js', './qrscan.js',
+  './app.js', './session.js', './jot-handoff.js', './protocol.js', './files.js', './clipboard.js', './qr.js', './devices.js', './qrscan.js',
   './vendor/peerjs.min.js', './vendor/qrcode.js', './vendor/jsqr.js', './icons/icon-180.png', './icons/icon-512.png'
 ];
 self.addEventListener('install', event => {
