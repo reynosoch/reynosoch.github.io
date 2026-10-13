@@ -75,7 +75,7 @@
 
       <aside id="editor" class="editor-pane" aria-label="Editor" hidden>
         <div class="editor-top">
-          <div class="editor-actions"><button id="pin-note" type="button" data-icon-button="pin">Fijar</button><button id="archive-note" type="button" data-icon-button="archive">Archivar</button><button id="trash-note" type="button" data-icon-button="trash">Papelera</button></div>
+          <div class="editor-actions"><button id="pin-note" type="button" data-icon-button="pin">Fijar</button><button id="archive-note" type="button" data-icon-button="archive">Archivar</button><button id="trash-note" type="button" data-icon-button="trash">Papelera</button><button id="send-drop-text" type="button" data-icon-button="upload">Enviar a Drop</button><button id="send-drop-file" type="button" data-icon-button="notes">TXT a Drop</button></div>
           <button id="close-editor" class="icon-only" type="button" aria-label="Cerrar editor" data-icon-only="x"></button>
         </div>
         <input id="note-title" class="note-title" type="text" placeholder="Título" maxlength="180" autocomplete="off">
@@ -94,6 +94,7 @@
 </div>
 
 <script type="module" src="./app.mjs"></script>
+<script type="module" src="./drop-handoff.mjs"></script>
 <script type="module" src="../shared/recent-use.mjs"></script>
 </body>
 </html>
