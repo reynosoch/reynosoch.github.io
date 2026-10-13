@@ -30,7 +30,7 @@ Los datos se guardan en IndexedDB `reynoso-jot` del navegador. No existe backend
 
 1. Abre `/jot/`.
 2. Deja `admin` como usuario si quieres conservar ese acceso.
-3. Escribe la contraseña que quieras usar y confírmala. Si quieres el acceso `admin / admin`, escribe `admin` tú mismo en ambos campos de contraseña; esa cadena no está hardcodeada en el sitio.
+3. Escribe tu contraseña local y confírmala. La clave elegida existe únicamente en tu dispositivo y no forma parte del código del sitio.
 4. Crea notas normalmente. Jot pide al navegador almacenamiento persistente cuando es posible.
 5. Usa **Exportar** para conservar un respaldo cifrado si vas a cambiar de equipo o navegador.
 
