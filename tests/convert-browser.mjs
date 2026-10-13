@@ -13,7 +13,7 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const base=`http://127.0.0.1:${server.address().port}`;
 let browser;
 try{
-  browser=await chromium.launch({headless:true});
+  browser=await chromium.launch({headless:true,...process.env.BROWSER_EXECUTABLE_PATH?{executablePath:process.env.BROWSER_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}:{} });
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:1366,height:768}});
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));

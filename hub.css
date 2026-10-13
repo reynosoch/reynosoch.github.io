@@ -24,3 +24,6 @@
 [data-family="lab"]{--accent:var(--lab);--ready:var(--lab);--line-accent:rgba(168,255,120,.32)}
 [data-family="lab"] .tool-glyph{background:rgba(168,255,120,.08)}
 [data-family="lab"] .is-ready{border-color:rgba(168,255,120,.34);background:rgba(168,255,120,.07)}
+
+/* Recents move existing cards; the catalogue keeps one access per tool. */
+.recent-section{border-radius:24px;padding:24px;margin-bottom:30px}.recent-section .tool-rows{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.recent-section [data-tool]{margin:0;border:1px solid var(--border);border-radius:18px;padding:18px;min-width:0}.recent-section .quick-card .quick-top{margin-bottom:8px}.recent-section .quick-card h3{font-size:18px}.recent-section .quick-card p{font-size:12px}.recent-section .tool-row{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px}.recent-section .row-arrow{display:none}.recent-section .tool-row .state{grid-column:2}.recent-section .row-copy h3{font-size:18px}@media(max-width:800px){.recent-section .tool-rows{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.recent-section .tool-rows{grid-template-columns:1fr}}

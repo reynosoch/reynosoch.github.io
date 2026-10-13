@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { tools, categories, dailyOrder } from '../shared/catalog.mjs';
 import { matchesTool, normalizeQuery } from '../shared/search.mjs';
 test('catalog exposes the requested stable routes without duplicate or fake ready apps',()=>{
-  const routes=['drop','transcribe','inspect','diff','clean','sql','context','prompt','json','api','regex','code','image','audio','pdf','shot','encode','qr','convert','errors','snippets','projects'];
+  const routes=['drop','transcribe','inspect','diff','clean','sql','context','prompt','json','api','regex','code','cutout','image','audio','pdf','shot','encode','qr','convert','errors','snippets','projects'];
   assert.deepEqual(tools.map(tool=>tool.id),routes);
-  assert.equal(new Set(tools.map(tool=>tool.id)).size,22);
-  assert.deepEqual(tools.filter(tool=>tool.ready).map(tool=>tool.id),['drop','transcribe','audio','shot','snippets']);
-  assert.equal(tools.filter(tool=>!tool.ready).length,17);
+  assert.equal(new Set(tools.map(tool=>tool.id)).size,23);
+  assert.deepEqual(tools.filter(tool=>tool.ready).map(tool=>tool.id),['drop','transcribe','cutout','audio','shot','convert','snippets']);
+  assert.equal(tools.filter(tool=>!tool.ready).length,16);
   for(const tool of tools) {
     assert.ok(/^[a-z]+$/.test(tool.id)); assert.ok(categories.some(category=>category.id===tool.category));
     assert.ok(tool.summary&&tool.purpose&&tool.features.length&&tool.examples.length);

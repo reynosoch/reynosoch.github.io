@@ -1,4 +1,6 @@
 const paths = {
+  cutout:'<path d="M4 4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5m0-6V4"/><path d="m8 16 8-8M8 8l8 8"/>',
+  'arrow-down':'<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
   drop:'<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M1 16h14m3-9 3 3-3 3M15 10h6"/><rect x="16" y="16" width="6" height="7" rx="1.5"/>',
   transcribe:'<path d="M3 9v6m4-10v14m4-11v8m4-5h7m-7 5h7m-7 5h5"/>',
   inspect:'<rect x="3" y="3" width="15" height="15" rx="2"/><path d="M3 8h15M8 3v15"/><circle cx="17" cy="17" r="4"/><path d="m20 20 3 3"/>',

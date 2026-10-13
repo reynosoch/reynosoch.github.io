@@ -1,0 +1,13 @@
+[
+  {
+    "file": "segment-1.7.0.mjs",
+    "version": "1.7.0",
+    "bytes": 881325,
+    "sha256": "0188a977857a5217759393f198082c07bd99058dc4f6dad61465ff8f7cb5f7da",
+    "licenses": [
+      "imgly.LICENSE",
+      "onnx.LICENSE",
+      "ThirdPartyLicenses.json"
+    ]
+  }
+]
