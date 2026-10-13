@@ -22,6 +22,7 @@ const paths = {
   convert:'<path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/>',
   errors:'<path d="M3 4h18v16H3ZM3 9h18M12 12v3m0 2h.01"/>',
   snippets:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 8 4 4-4 4m6 0h4"/>',
+  jot:'<path d="M5 3h11l3 3v15H5z"/><path d="M16 3v4h4M8 11h8M8 15h6"/>',
   projects:'<path d="M3 6V3h7l3 3h8v15H3ZM3 10h18"/>',
   'arrow-up-right':'<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
   'arrow-right':'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
