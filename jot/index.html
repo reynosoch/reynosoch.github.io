@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f1014">
+  <meta name="description" content="Notas, listas y pendientes guardados localmente en una bóveda privada del navegador.">
+  <link rel="canonical" href="https://reynosoch.github.io/jot/">
+  <title>Jot · Reynoso Toolchain</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../hub.css?v=liquid-glass">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="toolchain-body">
+<div class="ambient" aria-hidden="true"></div>
+<a class="skip-link" href="#main">Ir a Jot</a>
+
+<section id="gate" class="gate" aria-labelledby="gate-title">
+  <div class="gate-window glass">
+    <div class="mac-bar" aria-hidden="true"><span></span><span></span><span></span><b>jot-vault.local</b></div>
+    <div class="gate-copy">
+      <div class="gate-mark" data-icon="jot"></div>
+      <p class="section-kicker">NOTAS / LISTAS / DÍA A DÍA</p>
+      <h1 id="gate-title">Jot<span>.</span></h1>
+      <p id="gate-subtitle">Tus pendientes y notas rápidas, guardados en este dispositivo.</p>
+    </div>
+    <form id="access-form" class="access-form">
+      <label>Usuario<input id="username" name="username" autocomplete="username" value="admin" maxlength="40" required></label>
+      <label>Contraseña<input id="password" name="password" type="password" autocomplete="current-password" minlength="4" required></label>
+      <label id="confirm-wrap" hidden>Confirmar contraseña<input id="password-confirm" name="password-confirm" type="password" autocomplete="new-password" minlength="4"></label>
+      <button id="access-submit" class="button-primary" type="submit">Desbloquear</button>
+      <p id="access-status" class="access-status" role="status" aria-live="polite"></p>
+    </form>
+    <div class="gate-note"><span data-icon="lock"></span><p>La clave no se guarda en el repositorio ni se envía a un servidor. Si la pierdes, no existe recuperación automática.</p></div>
+  </div>
+</section>
+
+<div id="app" class="jot-shell" hidden>
+  <header class="jot-header glass">
+    <a href="../" class="jot-home"><span class="brand-mark">r.</span><span>Toolchain</span></a>
+    <div class="jot-brand"><strong>JOT<span>.</span></strong><small>NOTAS / LISTAS / DÍA A DÍA</small></div>
+    <div class="header-actions"><span id="saved-state">Guardado local</span><button id="lock-vault" type="button" data-icon-button="lock">Bloquear</button></div>
+  </header>
+
+  <main id="main" class="mac-window glass">
+    <div class="mac-titlebar">
+      <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+      <span>jot.local</span>
+      <div class="titlebar-actions"><button id="export-vault" type="button" data-icon-button="download">Exportar</button><button id="import-vault" type="button" data-icon-button="upload">Importar</button><input id="import-file" type="file" accept="application/json,.json" hidden></div>
+    </div>
+
+    <div class="jot-layout">
+      <aside class="nav-rail">
+        <div class="rail-head"><button id="new-note" class="primary-action" type="button" data-icon-button="plus">Nueva nota</button><button id="new-list" type="button" data-icon-button="check">Lista</button></div>
+        <nav aria-label="Secciones de Jot">
+          <button class="nav-item active" data-section="all" type="button" data-icon-button="notes"><span>Notas</span><b id="count-all">0</b></button>
+          <button class="nav-item" data-section="pinned" type="button" data-icon-button="pin"><span>Fijadas</span><b id="count-pinned">0</b></button>
+          <button class="nav-item" data-section="archive" type="button" data-icon-button="archive"><span>Archivo</span><b id="count-archive">0</b></button>
+          <button class="nav-item" data-section="trash" type="button" data-icon-button="trash"><span>Papelera</span><b id="count-trash">0</b></button>
+        </nav>
+        <div class="labels-head"><span>ETIQUETAS</span></div>
+        <div id="label-nav" class="label-nav"><p>Se crean al escribirlas en una nota.</p></div>
+        <div class="rail-foot"><small>Datos cifrados en IndexedDB.</small></div>
+      </aside>
+
+      <section class="notes-pane">
+        <div class="notes-toolbar">
+          <div class="search-box"><span data-icon="search"></span><label class="sr-only" for="search">Buscar notas</label><input id="search" type="search" placeholder="Buscar notas, listas o etiquetas" autocomplete="off"></div>
+          <div class="view-switch" role="group" aria-label="Vista"><button data-view="grid" aria-pressed="true" type="button" data-icon-button="grid">Cuadrícula</button><button data-view="list" aria-pressed="false" type="button" data-icon-button="list">Lista</button></div>
+        </div>
+        <div class="pane-heading"><div><p class="section-kicker">TU ESPACIO</p><h1 id="section-title">Notas</h1></div><span id="result-count">0 notas</span></div>
+        <div id="notes" class="notes-grid"></div>
+        <div id="empty-notes" class="empty-notes" hidden><span data-icon="jot"></span><h2>Escribe algo y sigue.</h2><p>Una idea, un pendiente, una lista o algo que no quieres perder durante el día.</p><button type="button" id="empty-new" class="button-primary">Crear nota</button></div>
+      </section>
+
+      <aside id="editor" class="editor-pane" aria-label="Editor" hidden>
+        <div class="editor-top">
+          <div class="editor-actions"><button id="pin-note" type="button" data-icon-button="pin">Fijar</button><button id="archive-note" type="button" data-icon-button="archive">Archivar</button><button id="trash-note" type="button" data-icon-button="trash">Papelera</button></div>
+          <button id="close-editor" class="icon-only" type="button" aria-label="Cerrar editor" data-icon-only="x"></button>
+        </div>
+        <input id="note-title" class="note-title" type="text" placeholder="Título" maxlength="180" autocomplete="off">
+        <textarea id="note-body" class="note-body" placeholder="Escribe una nota…" spellcheck="true"></textarea>
+        <div id="checklist" class="checklist" hidden></div>
+        <button id="add-check" type="button" class="add-check" data-icon-button="plus" hidden>Agregar elemento</button>
+        <div class="editor-meta">
+          <label>Etiquetas<input id="note-labels" type="text" placeholder="trabajo, escuela, personal" autocomplete="off"></label>
+          <fieldset class="color-picker"><legend>Color</legend><button type="button" data-color="slate" aria-label="Grafito"></button><button type="button" data-color="amber" aria-label="Ámbar"></button><button type="button" data-color="blue" aria-label="Azul"></button><button type="button" data-color="green" aria-label="Verde"></button><button type="button" data-color="rose" aria-label="Rosa"></button><button type="button" data-color="violet" aria-label="Violeta"></button></fieldset>
+        </div>
+        <div class="editor-footer"><span id="note-time"></span><button id="delete-forever" type="button" class="danger" hidden>Eliminar definitivamente</button></div>
+      </aside>
+    </div>
+  </main>
+  <footer class="hub-footer"><a href="../">REYNOSO TOOLCHAIN</a><span>Anota. Guarda. Sigue.</span></footer>
+</div>
+
+<script type="module" src="./app.mjs"></script>
+<script type="module" src="../shared/recent-use.mjs"></script>
+</body>
+</html>
