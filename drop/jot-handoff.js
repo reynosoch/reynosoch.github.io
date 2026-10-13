@@ -1,4 +1,5 @@
 const HANDOFF_KEY='reynoso-toolchain:drop-handoff:v1';
+const DROP_DRAFT_KEY='reynoso-drop:text-draft';
 const MAX_AGE=5*60*1000;
 
 function showToast(message){
@@ -28,6 +29,7 @@ function consume(){
       const area=document.getElementById('text-input');
       if(!area)return;
       area.value=text;area.dispatchEvent(new Event('input',{bubbles:true}));area.focus();
+      try{localStorage.removeItem(DROP_DRAFT_KEY);}catch{}
       showToast('Nota de Jot preparada como texto. Conecta la otra pantalla y envíala.');
     }
     const url=new URL(location.href);url.searchParams.delete('from');history.replaceState(null,'',url.pathname+url.search+url.hash);
