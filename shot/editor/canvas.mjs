@@ -1,12 +1,13 @@
 import {Canvas,FabricImage,FabricObject,Rect,Ellipse,Circle,Line,Triangle,Group,Textbox,FabricText,PencilBrush,Point,util} from '../vendor/fabric-7.4.0.mjs';
 import {Region} from './regions.mjs';
 import {History,clampCrop} from './history.mjs';
+import {validNumber} from './numbering.mjs';
 import {loadImage} from '../media/files.mjs';
-FabricObject.customProperties=['shotId','shotKind'];
+FabricObject.customProperties=['shotId','shotKind','shotNumber'];
 const base={originX:'left',originY:'top',cornerColor:'#ff9b4a',cornerStrokeColor:'#25160b',borderColor:'#ff9b4a',transparentCorners:false,cornerSize:11,touchCornerSize:26,strokeUniform:true};
 export class Editor {
- constructor(element,stage,{change,selection,view,tool,copyImage,error}={}){
-  this.stage=stage;this.callbacks={change,selection,view,tool,copyImage,error};this.style={color:'#ff4d4f',width:4,head:18,fontSize:28,opacity:1,bold:true,fill:false,align:'left'};this.tool='arrow';this.doc=null;this.loading=false;
+ constructor(element,stage,{change,selection,view,tool,copyImage,error,nextNumber}={}){
+  this.stage=stage;this.callbacks={change,selection,view,tool,copyImage,error,nextNumber};this.style={color:'#ff4d4f',width:4,head:18,fontSize:28,opacity:1,bold:true,fill:false,align:'left'};this.tool='arrow';this.doc=null;this.loading=false;
   this.canvas=new Canvas(element,{enablePointerEvents:true,preserveObjectStacking:true,selection:false,stopContextMenu:false,fireRightClick:false,renderOnAddRemove:false});
   this.canvas.on('mouse:down',e=>this.down(e));this.canvas.on('mouse:move',e=>this.move(e));this.canvas.on('mouse:up',e=>this.up(e));
   this.canvas.on('after:render',()=>{if(this.viewportPending){this.viewportPending=false;this.callbacks.view?.(this.canvas.getZoom());}});
@@ -18,11 +19,11 @@ export class Editor {
  }
  resize(){const r=this.stage.getBoundingClientRect();this.canvas.setDimensions({width:Math.max(100,r.width-2),height:Math.max(100,r.height-2)});if(this.doc&&!this.gesture)this.fit();}
  async open(doc){if(this.loading)return false;this.loading=true;this.doc=doc;this.draw=null;this.canvas.discardActiveObject();this.canvas.clear();try{const image=await loadImage(doc.blob);this.canvas.backgroundImage=new FabricImage(image,{...base,selectable:false,evented:false});await this.restore(doc.state||{objects:[],crop:null,notes:{}});doc.history??=new History();if(!doc.history.states.length)doc.history.push(this.snapshot());this.fit();this.setTool(this.tool);return true;}finally{this.loading=false;}}
- snapshot(){return {objects:this.canvas.getObjects().filter(o=>o!==this.cropBox).map(o=>o.toObject(['shotId','shotKind'])),crop:this.doc?.crop||null,notes:{...this.doc?.notes}};}
+ snapshot(){return {objects:this.canvas.getObjects().filter(o=>o!==this.cropBox).map(o=>o.toObject(['shotId','shotKind','shotNumber'])),crop:this.doc?.crop||null,notes:{...this.doc?.notes}};}
  async restore(state){this.restoring=true;try{for(const o of [...this.canvas.getObjects()])this.canvas.remove(o);const objects=await util.enlivenObjects(state.objects||[]);for(const o of objects)this.canvas.add(o);this.doc.crop=state.crop;this.doc.notes={...state.notes};this.cropBox=null;this.clip();this.renumber();this.canvas.requestRenderAll();this.callbacks.selection?.();}finally{this.restoring=false;}}
  clip(){this.canvas.clipPath=this.doc?.crop?new Rect({...this.doc.crop,...base,absolutePositioned:true,fill:'#000',strokeWidth:0}):undefined;}
  commit(){if(!this.doc||this.restoring||this.loading)return;this.renumber();this.doc.state=this.snapshot();this.doc.history.push(this.doc.state);this.doc.dirty=true;this.canvas.requestRenderAll();this.callbacks.change?.();}
- renumber(){this.markers().forEach((o,i)=>{o.getObjects()[1].set({text:String(i+1)});o.dirty=true;});}
+ renumber(){this.markers().forEach(o=>{if(!validNumber(o.shotNumber))o.shotNumber=this.callbacks.nextNumber?.()||Math.max(0,...this.markers().map(m=>m.shotNumber||0))+1;o.getObjects()[1].set({text:String(o.shotNumber),fontSize:o.shotNumber>=100?18:23});o.dirty=true;});}
  markers(){return this.canvas.getObjects().filter(o=>o.shotKind==='number');}
  async undo(){const s=this.doc?.history.undo();if(s){await this.restore(s);this.doc.state=this.snapshot();this.callbacks.change?.();}}
  async redo(){const s=this.doc?.history.redo();if(s){await this.restore(s);this.doc.state=this.snapshot();this.callbacks.change?.();}}
@@ -63,18 +64,18 @@ export class Editor {
    this.wheelGesture={zooming,dx:0,dy:0,point};
   }
   const g=this.wheelGesture;g.dx+=dx;g.dy+=dy;g.point=point;
-  if(!this.wheelFrame)this.wheelFrame=requestAnimationFrame(()=>{this.wheelFrame=0;this.flushTrackpad();});
+  if(!this.wheelFrame)this.wheelFrame=requestAnimationFrame(()=>{this.wheelFrame=0;this.flushTrackpad();if(this.viewportPending)this.canvas.renderAll();});
  }
  flushTrackpad(){
   const g=this.wheelGesture;if(!g)return;this.wheelGesture=null;
   if(g.zooming){
    const zoomDelta=Math.max(-220,Math.min(220,g.dy));
-   this.zoom(Math.exp(-.0015*zoomDelta),g.point);
+   this.zoom(Math.exp(-.003*zoomDelta),g.point);
    const lateral=Math.max(-180,Math.min(180,g.dx));
    if(Math.abs(lateral)>.05)this.panBy(-lateral,0);
   }else{
    const x=Math.max(-360,Math.min(360,g.dx)),y=Math.max(-360,Math.min(360,g.dy));
-   this.panBy(-x,-y);
+   this.panBy(-x*1.25,-y*1.25);
   }
  }
 
@@ -102,7 +103,7 @@ export class Editor {
   if(this.erasing){const e=this.erasing;this.erasing=null;for(const o of [...this.canvas.getObjects()])this.canvas.remove(o);for(const o of e.objects)this.canvas.add(o);this.doc.notes={...e.notes};this.renumber();this.canvas.requestRenderAll();this.callbacks.selection?.();}
   if(this.draw?.object)this.canvas.remove(this.draw.object);this.draw=null;this.pan=null;this.touchClick=null;}
  remove(){const objects=this.canvas.getActiveObjects();for(const o of objects){if(o===this.cropBox){this.cancelCrop();continue;}this.canvas.remove(o);delete this.doc.notes[o.shotId];}this.canvas.discardActiveObject();this.commit();}
- async duplicate(){const objects=this.canvas.getActiveObjects();for(const object of objects){if(object===this.cropBox)continue;const clone=await object.clone(['shotId','shotKind']);clone.set({left:object.left+24,top:object.top+24,shotId:crypto.randomUUID()});if(clone.shotKind==='number')this.doc.notes[clone.shotId]=this.doc.notes[object.shotId]||'';this.canvas.add(clone);this.canvas.setActiveObject(clone);}this.commit();}
+ async duplicate(){const objects=this.canvas.getActiveObjects();for(const object of objects){if(object===this.cropBox)continue;const clone=await object.clone(['shotId','shotKind','shotNumber']);clone.set({left:object.left+24,top:object.top+24,shotId:crypto.randomUUID()});if(clone.shotKind==='number'){clone.shotNumber=undefined;this.doc.notes[clone.shotId]=this.doc.notes[object.shotId]||'';}this.canvas.add(clone);this.canvas.setActiveObject(clone);}this.commit();}
  select(id){const o=this.canvas.getObjects().find(o=>o.shotId===id);if(o){this.setTool('select');this.canvas.setActiveObject(o);this.canvas.requestRenderAll();this.callbacks.selection?.();}}
  changeStyle(style){Object.assign(this.style,style);const o=this.canvas.getActiveObject();if(o&&o!==this.cropBox&&o.type!=='activeSelection'){
   if(o.shotKind==='text')o.set({fill:this.style.color,fontSize:this.style.fontSize,fontWeight:this.style.bold?'bold':'normal',textAlign:this.style.align,backgroundColor:this.style.fill?'#ffffffd9':''});

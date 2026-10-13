@@ -1,0 +1,7 @@
+export const validNumber=n=>Number.isSafeInteger(n)&&n>0;
+export function markerText(objects,n){const text=objects?.[1];if(text){text.text=String(n);text.fontSize=n>=100?18:23;}}
+// Migrate old per-capture labels once; numbers then stay attached to their points.
+export function normalizeNumbers(docs,next=1){const used=new Set();let cursor=validNumber(next)?next:1;for(const d of docs)for(const o of d.state?.objects||[])if(o.shotKind==='number'&&validNumber(o.shotNumber))cursor=Math.max(cursor,o.shotNumber+1);
+ for(const d of docs)for(const o of d.state?.objects||[]){if(o.shotKind!=='number')continue;if(!validNumber(o.shotNumber)||used.has(o.shotNumber))o.shotNumber=cursor++;used.add(o.shotNumber);markerText(o.objects,o.shotNumber);}return cursor;
+}
+export function completePrompt(docs,intro=''){const sections=docs.map((d,i)=>{const markers=(d.state?.objects||[]).filter(o=>o.shotKind==='number');return `## Captura ${i+1}: ${d.name}\n${markers.length?markers.map(o=>`${o.shotNumber}. ${(d.state.notes?.[o.shotId]||'').trim()||'Revisar el punto marcado.'}`).join('\n'):'Revisar esta captura junto con las instrucciones generales.'}`;});return `${intro.trim()||'Revisa todas las capturas adjuntas.'}\n\nLas capturas están en el mismo orden que la lámina o el paquete de imágenes. Los puntos mantienen su número entre capturas.\n\n${sections.join('\n\n')}\n\nRespeta la funcionalidad existente y corrige únicamente los puntos marcados y las instrucciones anteriores. No cambiar otras áreas sin necesidad.\n`;}

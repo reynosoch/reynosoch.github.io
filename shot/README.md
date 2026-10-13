@@ -14,7 +14,7 @@ Abrir capturas permite selección múltiple. También acepta arrastrar PNG, JPG,
 
 Fabric.js ofrece selección, movimiento, escalado, rotación, edición de texto, dibujo y serialización. Flecha, línea, subrayado, rectángulo, elipse, dibujo, resaltador, texto y marcador numerado son objetos editables. El texto se edita con doble clic/toque; admite tamaño, negrita, alineación y fondo. El panel Objetos permite seleccionar sin acertar un trazo fino. Las propiedades se aplican a la selección y quedan listas para los objetos nuevos.
 
-Los marcadores tienen notas separadas por ID; borrar/duplicar renumera los puntos. Copiar feedback genera texto plano con introducción editable e instrucciones acotadas. Preparar para IA ofrece copia de imagen e instrucciones en acciones separadas, PNG, Markdown y ZIP.
+Los marcadores tienen notas separadas por ID y números únicos en toda la sesión. Cambiar de captura, reordenar, borrar o deshacer no reinicia ni renumera los puntos restantes. Duplicar objetos/capturas y pegar marcadores crea números nuevos. El contador se recupera tras F5 y solo vuelve a 1 al borrar toda la sesión. Las sesiones antiguas se migran sin borrar sus notas. Copiar feedback genera texto plano con introducción editable e instrucciones acotadas. Preparar para IA ofrece copia de imagen e instrucciones en acciones separadas, PNG, Markdown y ZIP.
 
 Blur, Pixelar y Redactar son regiones editables. Redactar usa siempre un bloque opaco. Blur reduce detalle; no garantiza que texto o datos sean irreconocibles. Al exportar PNG/JPG/WebP o ZIP se rasterizan los efectos: el archivo no contiene objetos editables ni fuentes ocultas. La sesión local conserva el original hasta borrarla. La lupa ×2 conserva el fragmento elegido al moverla; Spotlight oscurece el entorno. Las regiones de efecto no rotan para mantener coherencia con los píxeles fuente; pueden moverse/escalarse.
 
@@ -26,9 +26,13 @@ B o el botón Borrador: mantén pulsado y pasa sobre flechas, texto, formas, dib
 
 ## Varias capturas y exportación
 
-Cada captura mantiene anotaciones e historial independientes. La tira permite seleccionar, renombrar, duplicar, reordenar y eliminar (con confirmación si tiene cambios). En móvil conserva estas acciones al seleccionar una captura y usar las opciones de la tira. Hasta 30 capturas / 128 MB de archivos fuente; el límite de fuente es conservador y cuenta duplicados.
+Cada captura mantiene anotaciones e historial independientes; la numeración de marcadores es compartida por todas. La tira permite seleccionar, renombrar, duplicar, reordenar y eliminar (con confirmación si tiene cambios). En móvil conserva estas acciones al seleccionar una captura y usar las opciones de la tira. Hasta 30 capturas / 128 MB de archivos fuente; el límite de fuente es conservador y cuenta duplicados.
 
 PNG es el formato predeterminado y conserva la resolución original. JPG/WebP permiten calidad; 2× amplía sin inventar detalle. Se conserva transparencia en PNG/WebP cuando la fuente la tiene; JPG se compone sobre blanco. Nombres basados en la captura, sin sobrescritura silenciosa. Copiar imagen usa `ClipboardItem` con PNG y una promesa para conservar la activación del usuario. Si el navegador o sus permisos lo bloquean, ofrece Descargar PNG. El botón Pegar puede requerir permiso de lectura; Ctrl+V recibe el evento normal.
+
+**Copiar todas las imágenes** copia una única lámina PNG en cuadrícula, con capturas anotadas y nombres numerados en el mismo orden de la galería. El portapapeles del navegador suele admitir una sola imagen por operación; para archivos PNG separados conserva Exportar todas. La lámina se reduce al superar 24 MP / 12 000 px por lado; para conservar cada captura a resolución original usa el ZIP. Se toma una copia del estado al pulsar, para que cambios posteriores no mezclen el lote.
+
+**Copiar prompt completo** reúne la introducción una sola vez, todas las capturas, sus notas y los números globales. También incluye capturas sin marcadores. Nombres e índices coinciden con la lámina y el ZIP.
 
 Exportar todas crea un ZIP con PNG planos y `feedback.md` mediante JSZip, con límite de 128 MB de PNG preparados por paquete. Combinar admite vertical, horizontal y cuadrícula, con máximo de 24 MP y 12 000 px por lado (reduce escala si es necesario). Antes/Después muestra dos capturas anotadas lado a lado como acción secundaria. Cada imagen individual tiene límite de 40 MP / 16 384 px por lado, incluido export a 2×. Un dispositivo con poca memoria puede necesitar capturas menores.
 
@@ -42,8 +46,8 @@ La sesión reciente se guarda en IndexedDB `reynoso-shot`, stores `assets`, `sta
 
 ## Zoom y navegación
 
-- Pinch del trackpad o Ctrl/Cmd + rueda: zoom en tiempo real al punto del cursor, con respuesta un poco más rápida.
-- Desplazar dos dedos en el trackpad (sin Ctrl/Cmd): mover la imagen en horizontal/vertical; la rueda también desplaza dentro del lienzo. Fuera del editor se conserva el scroll normal.
+- Pinch del trackpad o Ctrl/Cmd + rueda: zoom en tiempo real al punto del cursor, con el doble de sensibilidad respecto a la versión anterior y render dentro del mismo frame del gesto.
+- Desplazar dos dedos en el trackpad (sin Ctrl/Cmd): mover la imagen en horizontal/vertical, con desplazamiento un 25% más ágil; la rueda también desplaza dentro del lienzo. Fuera del editor se conserva el scroll normal.
 - Ctrl/Cmd + clic izquierdo y arrastrar: mover la vista temporalmente, incluso con selección, dibujo o borrador activos. Al soltar vuelve la herramienta.
 - Pinch con dos dedos dentro del lienzo: acercar/alejar; mover ambos dedos: pan.
 - + / −: cambiar zoom; Encajar: mostrar la captura; 100%: tamaño 1:1.
@@ -87,6 +91,8 @@ Prompt, Context, Drop, Image Lab y Transcribe son enlaces de navegación. No exi
 
 ## Verificación
 
-`npm run generate` conserva Shot porque `ready: true`; build copia la app completa a `dist/shot/`. `npm run check` valida catálogo/orden, rutas, hashes, historial, límites, feedback y persistencia con fake-indexeddb. `npm run check:shot:browser` valida portapapeles nativo, import múltiple, herramientas, historial, notas, PNG, recovery, censura/efectos, ZIP, combinación, carpeta fallback y layouts. El workflow Verify main incluye esta suite junto a Audio Lab y Snippets.
+`npm run generate` conserva Shot porque `ready: true`; build copia la app completa a `dist/shot/`. `npm run check` valida catálogo/orden, rutas, hashes, historial, numeración global/migración, prompt completo, límites, feedback y persistencia con fake-indexeddb. `npm run check:shot:browser` valida portapapeles nativo, import múltiple, herramientas, historial, notas, PNG, recovery, censura/efectos, ZIP, combinación, carpeta fallback y layouts. El workflow Verify main incluye esta suite junto a Audio Lab y Snippets.
 
 QA de imágenes sintéticas 1920×1080, 2560×1440, 700×7000 y varias simultáneas; layouts 1920×1080, 1366×768, iPad 1180×820 / 820×1180 y 390×844. La regresión de viewport verifica diez pasos wheel con cambios de píxeles sin objetos, foco en el cursor, coordenadas tras zoom/pan, clic derecho, clipboard PNG anotado de 1535×862 a 300%, capturas independientes y repintado durante touchmove antes de levantar dedos. Se automatiza la representación wheel+Ctrl/Meta del pinch de trackpad; no se afirma haber probado un trackpad físico. Chromium automatizado no reemplaza Safari, permisos nativos de carpeta ni iPad/Apple Pencil físico. GitHub Pages permanece: el fallo estaba en el render local de Fabric, no en hosting.
+
+La suite de navegador verifica números 1/2 en una captura y 3 en la siguiente, continuación tras F5, borrado/Deshacer, duplicación de objetos, pegado y duplicación de capturas sin reutilizar números; copia real de la lámina PNG anotada y del prompt de seis capturas.

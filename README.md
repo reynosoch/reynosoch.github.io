@@ -81,7 +81,7 @@ La portada mueve las tarjetas usadas a **Recientes**, por último uso (más reci
 - **[Convert](https://reynosoch.github.io/convert/)**: conversión de documentos, imágenes y texto y PDF Studio. [Documentación](convert/README.md).
 
 
-- **[Shot](https://reynosoch.github.io/shot/)**: anota screenshots para feedback de desarrollo e IA. Ctrl+V, varias capturas, flechas/texto/callouts con notas, historial, censura plana, recorte, borrador de anotaciones, zoom/touch en tiempo real y navegación con trackpad o Ctrl + arrastrar, clic derecho para deshacer y Ctrl/Cmd + clic derecho para copiar PNG, copia PNG/feedback, ZIP y comparativas. [Documentación de Shot](shot/README.md).
+- **[Shot](https://reynosoch.github.io/shot/)**: anota screenshots para feedback de desarrollo e IA. Ctrl+V, varias capturas, flechas/texto/callouts con notas, historial, censura plana, recorte, borrador de anotaciones, zoom/touch en tiempo real y navegación con trackpad o Ctrl + arrastrar, clic derecho para deshacer y Ctrl/Cmd + clic derecho para copiar PNG, copia PNG/feedback, lámina de todas las imágenes, prompt completo, números continuos entre capturas, ZIP y comparativas. [Documentación de Shot](shot/README.md).
 
 - **[Snippets](https://reynosoch.github.io/snippets/)**: biblioteca local de 56 comandos y recetas, búsqueda por tarea, detalle, favoritos, recientes, CRUD, import/export JSON y copia protegida de destructivos. [Documentación de Snippets](snippets/README.md).
 
