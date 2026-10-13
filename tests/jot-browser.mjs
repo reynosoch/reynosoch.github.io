@@ -12,6 +12,12 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const base=`http://127.0.0.1:${server.address().port}`;
 const password=`qa-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let browser;
+async function unlock(page){
+  await page.waitForSelector('body[data-ready=true]');
+  if(await page.locator('#app').isHidden()){
+    await page.fill('#password',password);await page.click('#access-submit');await page.waitForFunction(()=>!document.querySelector('#app').hidden);
+  }
+}
 try{
   browser=await chromium.launch({headless:true});
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:1366,height:900}});
@@ -28,9 +34,20 @@ try{
   assert.equal(stored.noteRows.length,1);const raw=JSON.stringify(stored.noteRows);assert(!raw.includes('Pendiente del día'));assert(!raw.includes('Revisar inventario'));assert.equal(stored.meta.username,'admin');assert(!('password' in stored.meta));
   await page.click('#close-editor');await page.waitForFunction(()=>document.querySelector('#saved-state').textContent==='Guardado local');await page.click('#lock-vault');
   await page.fill('#password',password);await page.click('#access-submit');await page.waitForFunction(()=>!document.querySelector('#app').hidden);assert.match(await page.locator('#notes').innerText(),/Pendiente del día/);
-  await page.reload();await page.waitForSelector('body[data-ready=true]');await page.fill('#password',password);await page.click('#access-submit');await page.waitForFunction(()=>!document.querySelector('#app').hidden);assert.match(await page.locator('#notes').innerText(),/Pendiente del día/);
+  await page.reload();await unlock(page);assert.match(await page.locator('#notes').innerText(),/Pendiente del día/);
   const downloadEvent=page.waitForEvent('download');await page.click('#export-vault');const download=await downloadEvent,backup=await readFile(await download.path(),'utf8');assert.equal(download.suggestedFilename().startsWith('jot-backup-'),true);assert(!backup.includes('Pendiente del día'));assert(!backup.includes('Revisar inventario'));
+
+  await page.locator('#notes .note-card').first().click();await page.click('#send-drop-text');
+  await page.waitForFunction(()=>location.pathname.endsWith('/drop/')&&document.querySelector('#text-input')?.value.includes('Pendiente del día'));
+  assert.match(await page.locator('#text-input').inputValue(),/Revisar inventario a las 2/);
+  assert.equal(await page.evaluate(()=>sessionStorage.getItem('reynoso-toolchain:drop-handoff:v1')),null);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('reynoso-drop:text-draft')),null);
+
+  await page.goto(base+'/jot/');await unlock(page);await page.locator('#notes .note-card').first().click();await page.click('#send-drop-file');
+  await page.waitForFunction(()=>location.pathname.endsWith('/drop/')&&document.querySelector('#file-queue')?.textContent.includes('Pendiente-del-dia.txt'));
+  assert.match(await page.locator('#file-queue').innerText(),/Pendiente-del-dia\.txt/);
+
   await page.goto(base+'/');await page.waitForFunction(()=>document.querySelector('[data-tool="jot"]'));await page.waitForFunction(()=>document.querySelector('#recent-tools [data-tool="jot"]'));assert.match(await page.locator('[data-tool="jot"]').innerText(),/Jot/);
   assert.deepEqual(errors,[]);
-  console.log('Jot browser: setup local, cifrado, autosave, bloqueo, persistencia, respaldo y recientes OK.');
+  console.log('Jot browser: cifrado, persistencia, respaldo, handoff texto/TXT a Drop y recientes OK.');
 } finally {await browser?.close();await new Promise(r=>server.close(r));}
