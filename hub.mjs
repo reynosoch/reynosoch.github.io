@@ -1,9 +1,23 @@
 import { matchesTool } from './shared/search.mjs';
+import {icon} from './shared/icons.mjs';
+import {readRecents,recordUse,RECENT_KEY} from './shared/recents.mjs';
+
+function injectJot(){
+  if(document.querySelector('[data-tool="jot"]'))return;
+  const personal=document.querySelector('[aria-labelledby="category-personal"] .tool-rows');
+  if(!personal)return;
+  const card=document.createElement('a');
+  card.className='tool-row';card.href='./jot/';card.dataset.tool='jot';card.dataset.family='toolchain';card.dataset.ready='true';
+  card.dataset.search='Jot notas listas pendientes recordatorios escuela trabajo personal privado bóveda cifrada checklist etiquetas fijadas archivo papelera';
+  card.innerHTML=`<span class="tool-glyph">${icon('jot')}</span><div class="row-copy"><h3>Jot</h3><p>Notas, listas y pendientes guardados en tu dispositivo.</p></div><span class="state is-ready"><i aria-hidden="true"></i>LISTO</span><span class="row-arrow" aria-hidden="true">${icon('arrow-right','ui-icon')}</span>`;
+  personal.prepend(card);
+}
+injectJot();
+
 const search=document.getElementById('tool-search');
 const cards=[...document.querySelectorAll('[data-tool]')];
 const groups=[...document.querySelectorAll('[data-tool-group]')];
 const buttons=[...document.querySelectorAll('[data-state-filter]')];
-import {readRecents,recordUse,RECENT_KEY} from './shared/recents.mjs';
 const origins=new Map(cards.map(card=>[card,card.parentElement]));
 function reorder(){
  const recent=readRecents(),container=document.getElementById('recent-tools');
