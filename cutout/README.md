@@ -17,7 +17,7 @@ Quita el fondo. Déjalo listo. Logos, stickers, tipografía y sujetos claros, co
 ## Motor y calidad
 
 - `@imgly/background-removal` **1.7.0**, ONNX Runtime Web **1.21.0**, modelo ISNet FP16. Bundle local generado con esbuild. Inferencia WASM de un hilo en worker, compatible con Pages sin COOP/COEP ni backend.
-- El modo Automático ejecuta segmentación real. En Logo/Sticker, si más del 90% del perímetro corresponde a un fondo uniforme, combina el pipeline con una máscara de contraste que conserva letras separadas y huecos internos. En Fotos usa la máscara del sujeto. No se pinta un fondo de otro color.
+- El modo Automático ejecuta segmentación real. En Logo/Sticker, si más del 90% del perímetro corresponde a un fondo uniforme, combina el pipeline con una máscara de contraste que conserva letras separadas y huecos internos. Los gráficos Logo/Sticker que ya tienen un perímetro transparente conservan su alfa sin descargar recursos innecesarios. En Fotos usa la máscara del sujeto. No se pinta un fondo de otro color.
 - Color sólido es un complemento explícito que evita descargar el modelo; se elige el color. Puede quitar partes del sujeto del mismo color: restaura con pincel o vuelve al modo Automático/Fotos.
 - Suavizado, eliminación de componentes pequeños y reducción de contaminación de color se ejecutan fuera del hilo de UI. Las transparencias originales se multiplican por la máscara, nunca se vuelven opacas al refinar.
 - ISNet es una segmentación general, no garantiza cabello, vidrio, humo, sombras o letras sobre fondos complejos. Los logos sobre fondo plano reciben el complemento especializado; sujetos del mismo color que el fondo requieren retoque. Revisa ambos fondos antes de usar el asset.
@@ -39,3 +39,5 @@ JSZip **3.10.2** reutiliza el bundle local de Shot para exportación. Iconos SVG
 ## Verificación
 
 `npm run check`, `npm run build`, `npm run check:cutout:browser`. Tests de máscaras: fondo blanco/negro, letras, transparencia existente y partículas. Smoke browser: carga, dos PNG transparentes, ZIP, antes/después, pincel, layouts y recientes entre Shot→Cutout→Convert y recarga. `CUTOUT_REAL=1 npm run check:cutout:browser` verifica el pipeline con ISNet real y descargas externas; se ejecuta aparte para no depender del CDN en cada CI.
+
+La prueba opcional `CUTOUT_PHOTO_PATH=/ruta/foto.png CUTOUT_REAL=1 npm run check:cutout:browser` comprueba además segmentación de una foto; las capturas de QA van a una carpeta temporal o `CUTOUT_QA_ARTIFACT_DIR`.

@@ -1,8 +1,9 @@
 // Deterministic matte refinement; called in a worker, never on the UI thread.
 export function backgroundColor(rgba,w,h){
- const samples=[];const step=Math.max(1,Math.floor(Math.max(w,h)/128));
- const add=(x,y)=>{let i=(y*w+x)*4;if(rgba[i+3]>240)samples.push([rgba[i],rgba[i+1],rgba[i+2]]);};
+ const samples=[];let edgeCount=0,clearCount=0;const step=Math.max(1,Math.floor(Math.max(w,h)/128));
+ const add=(x,y)=>{let i=(y*w+x)*4;edgeCount++;if(rgba[i+3]<8)clearCount++;if(rgba[i+3]>240)samples.push([rgba[i],rgba[i+1],rgba[i+2]]);};
  for(let x=0;x<w;x+=step){add(x,0);add(x,h-1);}for(let y=0;y<h;y+=step){add(0,y);add(w-1,y);}
+ if(clearCount/edgeCount>.95)return {color:[255,255,255],solid:false,transparent:true};
  if(samples.length<8)return {color:[255,255,255],solid:false};
  const buckets=new Map();for(const c of samples){const key=c.map(v=>v>>4).join(',');const group=buckets.get(key)||[];group.push(c);buckets.set(key,group);}
  const group=[...buckets.values()].sort((a,b)=>b.length-a.length)[0];const color=[0,1,2].map(k=>Math.round(group.reduce((s,c)=>s+c[k],0)/group.length));

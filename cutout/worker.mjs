@@ -5,6 +5,7 @@ self.onmessage=async({data:m})=>{try{
  if(m.type==='process'){
   rgba=new Uint8ClampedArray(m.rgba);w=m.width;h=m.height;bg=backgroundColor(rgba,w,h);
   if(m.settings.method==='solid')base=colorMask(rgba,m.settings.color||bg.color,m.settings.tolerance);
+  else if(bg.transparent&&m.settings.preset!=='photo')base=new Uint8Array(w*h).fill(255);
   else {
    segment||=(await import('./vendor/segment-1.7.0.mjs')).segmentForeground;
    const canvas=new OffscreenCanvas(w,h);canvas.getContext('2d').putImageData(new ImageData(rgba,w,h),0,0);

@@ -5,3 +5,5 @@ test('cleanup removes isolated speckles without discarding larger subject',()=>{
 test('existing image transparency is never made opaque by refinement',()=>{const r=new Uint8ClampedArray([255,0,0,0,255,0,0,100]);const out=refine(r,new Uint8Array([255,255]),2,1,settings,[255,255,255]);assert.equal(out[3],0);assert.equal(out[7],100);});
 
 test('sensitivity extremes preserve completely transparent background and fully opaque subject',()=>{for(const strength of [0,100]){const r=new Uint8ClampedArray([255,255,255,255,0,0,0,255]);const out=refine(r,new Uint8Array([0,255]),2,1,{...settings,strength},[255,255,255]);assert.equal(out[3],0);assert.equal(out[7],255);}});
+
+test('already transparent graphic is detected without inventing a background',()=>{const r=new Uint8ClampedArray(30*30*4);r.set([255,255,255,255],(15*30+15)*4);assert.equal(backgroundColor(r,30,30).transparent,true);});
