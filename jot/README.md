@@ -10,7 +10,7 @@ Jot no contiene una contraseña en el repositorio. En el primer uso del navegado
 
 La contraseña deriva una clave AES-GCM de 256 bits mediante PBKDF2/SHA-256 con salt aleatorio y 220,000 iteraciones. El verificador y cada nota se cifran por separado con IV aleatorio. La clave descifrada vive únicamente en memoria mientras Jot está desbloqueado.
 
-Los datos se guardan en IndexedDB `reynoso-jot` del navegador. No existe backend, cuenta remota ni sincronización automática entre dispositivos. Si se pierde la contraseña no existe recuperación automática.
+Los datos se guardan en IndexedDB `reynoso-jot` del navegador. No existe backend, cuenta remota ni sincronización automática entre dispositivos. Apagar y volver a encender el mismo equipo conserva la bóveda mientras el navegador no borre los datos del sitio. Abrir Jot en otro equipo, aunque uses el mismo usuario y contraseña, crea otra bóveda porque no hay almacenamiento remoto.
 
 ## Funciones
 
@@ -23,8 +23,12 @@ Los datos se guardan en IndexedDB `reynoso-jot` del navegador. No existe backend
 - cuadrícula tipo notas rápidas o vista de lista;
 - exportación de bóveda cifrada en JSON;
 - importación de respaldo para mover la bóveda manualmente a otro navegador;
+- **Enviar a Drop** para preparar la nota como texto en Reynoso Drop;
+- **TXT a Drop** para preparar la nota como archivo `.txt` y transferirla a otro dispositivo;
 - bloqueo manual que elimina la clave de la sesión y vuelve a pedir acceso;
 - atajos: `Ctrl/Cmd + N` crea nota y `Ctrl/Cmd + Shift + N` crea checklist.
+
+El pase Jot → Drop usa `sessionStorage` únicamente durante la navegación entre ambas herramientas y se consume al abrir Drop. El texto no se coloca en la URL ni se conserva como borrador de Drop después de preparar el handoff.
 
 ## Primer uso
 
@@ -33,10 +37,11 @@ Los datos se guardan en IndexedDB `reynoso-jot` del navegador. No existe backend
 3. Escribe tu contraseña local y confírmala. La clave elegida existe únicamente en tu dispositivo y no forma parte del código del sitio.
 4. Crea notas normalmente. Jot pide al navegador almacenamiento persistente cuando es posible.
 5. Usa **Exportar** para conservar un respaldo cifrado si vas a cambiar de equipo o navegador.
+6. Si quieres pasar una nota a otra pantalla, abre la nota y usa **Enviar a Drop** o **TXT a Drop**; Drop la deja lista para transferir por su sala de cuatro números o QR.
 
 ## Límites
 
-Jot es almacenamiento local del navegador, no un servicio de sincronización. Borrar los datos del sitio, usar limpieza corporativa del navegador o perder el perfil puede borrar la bóveda si no existe un respaldo. El cifrado protege el contenido almacenado, pero no sustituye un gestor de contraseñas ni un sistema empresarial para secretos críticos.
+Jot es almacenamiento local del navegador, no un servicio de sincronización. Borrar los datos del sitio, usar limpieza corporativa del navegador, modo privado o perder el perfil puede borrar la bóveda si no existe un respaldo. Una VPN no cambia dónde se guardan las notas: la bóveda sigue perteneciendo al navegador y dispositivo que la creó.
 
 No guardar credenciales corporativas, llaves privadas, tokens, información regulada o secretos de alto impacto. El objetivo es notas cotidianas, pendientes, recordatorios personales, escuela y trabajo no sensible.
 
@@ -47,4 +52,6 @@ No guardar credenciales corporativas, llaves privadas, tokens, información regu
 - `crypto.mjs`: derivación de clave, cifrado y descifrado.
 - `store.mjs`: IndexedDB, respaldo e importación.
 - `app.mjs`: notas, listas, filtros, autosave y UI.
-- `tests/jot-browser.mjs`: prueba de configuración, cifrado, persistencia, bloqueo y respaldo.
+- `drop-handoff.mjs`: prepara el pase temporal de una nota hacia Drop.
+- `drop/jot-handoff.js`: consume el pase y precarga texto o un `.txt` en Drop.
+- `tests/jot-browser.mjs`: prueba de configuración, cifrado, persistencia, respaldo y handoff.
