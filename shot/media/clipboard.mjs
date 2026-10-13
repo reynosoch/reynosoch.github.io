@@ -18,7 +18,7 @@ function touchDevice(){return navigator.maxTouchPoints>0||globalThis.matchMedia?
 function mobilePasteFallback(){
  return new Promise((resolve,reject)=>{
   const dialog=document.createElement('dialog');dialog.className='glass';dialog.setAttribute('aria-label','Pegar captura en móvil');
-  const title=document.createElement('h2');title.textContent='Pega tu captura.';
+  const title=document.createElement('h2');title.textContent='Pegue una captura.';
   const help=document.createElement('p');help.textContent='En iPhone/iPad el navegador puede bloquear el pegado directo. Mantén pulsado el recuadro y toca Pegar.';
   const target=document.createElement('div');target.contentEditable='true';target.inputMode='none';target.setAttribute('role','textbox');target.setAttribute('aria-label','Mantén pulsado aquí y toca Pegar');target.textContent='Mantén pulsado aquí y toca Pegar';
   Object.assign(target.style,{minHeight:'104px',display:'grid',placeItems:'center',padding:'18px',margin:'16px 0',border:'1px dashed #ff9b4a',borderRadius:'18px',textAlign:'center',outline:'none',fontWeight:'700',WebkitUserSelect:'text',userSelect:'text'});

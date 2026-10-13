@@ -49,14 +49,14 @@ function clearFile() {
 }
 function setMode(next, preserve = false) {
   if (busy || loading || consentPending || recorder) return;
-  if (!preserve && next !== mode) { clearFile(); clearResult(); status('Listo cuando tú lo estés.'); }
+  if (!preserve && next !== mode) { clearFile(); clearResult(); status('Preparado para comenzar.'); }
   mode = next;
   for (const type of ['audio', 'image']) {
     $(`tab-${type}`).classList.toggle('active', type === mode); $(`tab-${type}`).setAttribute('aria-selected', String(type === mode));
     $(`tab-${type}`).tabIndex = type === mode ? 0 : -1;
     $(`${type}-controls`).hidden = type !== mode;
   }
-  $('drop-title').textContent = mode === 'audio' ? 'Suelta tu audio aquí' : 'Suelta tu imagen aquí';
+  $('drop-title').textContent = mode === 'audio' ? 'Agregue un archivo de audio' : 'Agregue una imagen';
   $('formats').textContent = mode === 'audio' ? 'M4A · MP3 · WAV · OGG · FLAC · VIDEO' : 'PNG · JPG · WEBP · BMP · CAPTURAS';
   $('file-input').accept = mode === 'audio' ? 'audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.flac,.aac,.aiff,.webm,.mp4' : 'image/*';
   updateButtons();
@@ -80,7 +80,7 @@ for (const type of ['audio','image']) $(`tab-${type}`).addEventListener('keydown
   if (['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) { e.preventDefault(); const next = type === 'audio' ? 'image' : 'audio'; setMode(next); $(`tab-${next}`).focus(); }
 });
 $('dropzone').onclick = () => $('file-input').click(); $('file-input').onchange = e => acceptFile(e.target.files[0]);
-$('remove-file').onclick = () => { clearFile(); clearResult(); status('Listo cuando tú lo estés.'); };
+$('remove-file').onclick = () => { clearFile(); clearResult(); status('Preparado para comenzar.'); };
 for (const event of ['dragenter', 'dragover']) $('dropzone').addEventListener(event, e => { e.preventDefault(); if (!busy && !loading) $('dropzone').classList.add('dragover'); });
 for (const event of ['dragleave', 'drop']) $('dropzone').addEventListener(event, e => { e.preventDefault(); $('dropzone').classList.remove('dragover'); if (event === 'drop') acceptFile(e.dataTransfer.files[0]); });
 window.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('Files')) e.preventDefault(); });

@@ -123,7 +123,7 @@ dialog.addEventListener('click',event=>{if(event.target===dialog)closeDialog()})
 
 const field=(label,html,hint='')=>`<label class="pdf-field"><span>${label}</span>${html}${hint?`<small>${hint}</small>`:''}</label>`;
 const fileInput=(multiple=false,accept='.pdf',id='pdf-tool-files',capture='')=>`<input id="${id}" type="file" ${multiple?'multiple':''} accept="${accept}" ${capture?`capture="${capture}"`:''}>`;
-const pageRangeField=()=>field('Páginas',`<input id="tool-pages" type="text" placeholder="Todas o 1-3,5,8-10">`,'Déjalo vacío para aplicar a todo el documento.');
+const pageRangeField=()=>field('Páginas',`<input id="tool-pages" type="text" placeholder="Todas o 1-3,5,8-10">`,'Deje el campo vacío para aplicar la acción a todo el documento.');
 
 const templates={
   merge:()=>`${field('PDFs a unir',fileInput(true,'.pdf'))}<p class="pdf-hint">Se respetará el orden de selección del navegador.</p>`,

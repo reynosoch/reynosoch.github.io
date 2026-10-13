@@ -2,7 +2,7 @@
 
 **LISTO** · [Abrir Snippets](https://reynosoch.github.io/snippets/) · [Volver al Toolchain](https://reynosoch.github.io/)
 
-Comandos que no vale la pena memorizar. Una biblioteca de consulta rápida: **buscar → entender → copiar → seguir trabajando**. HTML, CSS y módulos JavaScript nativos; sin backend, cuenta, API ni IA remota.
+Comandos frecuentes, documentados y listos para copiar. Una biblioteca de consulta rápida: **buscar → entender → copiar → seguir trabajando**. HTML, CSS y módulos JavaScript nativos; sin backend, cuenta, API ni IA remota.
 
 ## Funcionalidades
 

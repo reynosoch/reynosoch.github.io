@@ -2,7 +2,7 @@
 
 **LISTO** · [Abrir Cutout](https://reynosoch.github.io/cutout/) · [Toolchain](https://reynosoch.github.io/)
 
-Quita el fondo. Déjalo listo. Logos, stickers, tipografía y sujetos claros, con PNG transparente real.
+Elimina fondos y genera archivos PNG transparentes para logotipos, stickers, tipografía y sujetos definidos.
 
 ## Uso
 

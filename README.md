@@ -34,24 +34,24 @@ La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta c
 | Inspect | EN DESARROLLO | [Abrir Inspect](https://reynosoch.github.io/inspect/) | Conoce tus archivos antes de usarlos. |
 | Diff | EN DESARROLLO | [Abrir Diff](https://reynosoch.github.io/diff/) | Qué cambió entre el archivo A y el B. |
 | Clean | EN DESARROLLO | [Abrir Clean](https://reynosoch.github.io/clean/) | Menos ruido en tus Excel y CSV. |
-| SQL Lab | EN DESARROLLO | [Abrir SQL Lab](https://reynosoch.github.io/sql/) | Pregúntale a tus archivos con SQL. |
+| SQL Lab | EN DESARROLLO | [Abrir SQL Lab](https://reynosoch.github.io/sql/) | Consulta archivos mediante SQL. |
 | Context | EN DESARROLLO | [Abrir Context](https://reynosoch.github.io/context/) | Todo el proyecto, listo para otra IA. |
 | Prompt | EN DESARROLLO | [Abrir Prompt](https://reynosoch.github.io/prompt/) | Un objetivo claro. Un prompt completo. |
 | JSON Lab | EN DESARROLLO | [Abrir JSON Lab](https://reynosoch.github.io/json/) | Valida, ordena y transforma JSON. |
 | API Lab | EN DESARROLLO | [Abrir API Lab](https://reynosoch.github.io/api/) | Una petición rápida, sin abrir Postman. |
 | Regex | EN DESARROLLO | [Abrir Regex](https://reynosoch.github.io/regex/) | Comprueba el patrón antes de usarlo. |
 | Code Lab | EN DESARROLLO | [Abrir Code Lab](https://reynosoch.github.io/code/) | Código listo para copiar o compartir. |
-| Cutout | LISTO | [Abrir Cutout](https://reynosoch.github.io/cutout/) | Quita el fondo. Deja el PNG listo. |
-| Image Lab | EN DESARROLLO | [Abrir Image Lab](https://reynosoch.github.io/image/) | Ajusta una imagen y sigue trabajando. |
-| Audio Lab | LISTO | [Abrir Audio Lab](https://reynosoch.github.io/audio/) | Limpia una grabación y déjala lista para Transcribe. |
+| Cutout | LISTO | [Abrir Cutout](https://reynosoch.github.io/cutout/) | Elimina fondos y genera un PNG transparente. |
+| Image Lab | EN DESARROLLO | [Abrir Image Lab](https://reynosoch.github.io/image/) | Edita y prepara imágenes para distintos usos. |
+| Audio Lab | LISTO | [Abrir Audio Lab](https://reynosoch.github.io/audio/) | Prepara grabaciones para su uso en Transcribe. |
 | PDF Lab | EN DESARROLLO | [Abrir PDF Lab](https://reynosoch.github.io/pdf/) | Las páginas que necesitas, en orden. |
-| Shot | LISTO | [Abrir Shot](https://reynosoch.github.io/shot/) | Marca capturas y devuelve feedback a tu IA. |
+| Shot | LISTO | [Abrir Shot](https://reynosoch.github.io/shot/) | Anota capturas y genera instrucciones de revisión. |
 | Encode | EN DESARROLLO | [Abrir Encode](https://reynosoch.github.io/encode/) | Codifica, decodifica y verifica. |
 | QR | EN DESARROLLO | [Abrir QR](https://reynosoch.github.io/qr/) | De un enlace a un QR. Y de regreso. |
 | Convert | LISTO | [Abrir Convert](https://reynosoch.github.io/convert/) | PDF, Word, Excel, imágenes y texto entre formatos. |
-| Error Vault | EN DESARROLLO | [Abrir Error Vault](https://reynosoch.github.io/errors/) | No resuelvas el mismo error dos veces. |
+| Error Vault | EN DESARROLLO | [Abrir Error Vault](https://reynosoch.github.io/errors/) | Registra soluciones para reutilizarlas. |
 | Snippets | LISTO | [Abrir Snippets](https://reynosoch.github.io/snippets/) | Comandos útiles, explicados y listos para copiar. |
-| Projects | EN DESARROLLO | [Abrir Projects](https://reynosoch.github.io/projects/) | Tus proyectos y accesos, en un lugar. |
+| Projects | EN DESARROLLO | [Abrir Projects](https://reynosoch.github.io/projects/) | Proyectos, accesos y notas en un solo lugar. |
 <!-- TOOLCHAIN_CATALOG_END -->
 
 ### Uso diario
@@ -81,7 +81,7 @@ La portada mueve las tarjetas usadas a **Recientes**, por último uso (más reci
 - **[Convert](https://reynosoch.github.io/convert/)**: conversión de documentos, imágenes y texto y PDF Studio. [Documentación](convert/README.md).
 
 
-- **[Shot](https://reynosoch.github.io/shot/)**: anota screenshots para feedback de desarrollo e IA. Ctrl+V, varias capturas, flechas/texto/callouts con notas, historial, censura plana, recorte, borrador de anotaciones, zoom/touch en tiempo real y navegación con trackpad o Ctrl + arrastrar, clic derecho para deshacer y Ctrl/Cmd + clic derecho para copiar PNG, copia PNG/feedback, lámina de todas las imágenes, prompt completo, números continuos entre capturas, ZIP y comparativas. [Documentación de Shot](shot/README.md).
+- **[Shot](https://reynosoch.github.io/shot/)**: anota capturas para revisiones de desarrollo. Admite Ctrl+V, varias capturas, flechas, texto, marcadores con notas, historial, censura plana, recorte, borrador de anotaciones, zoom táctil y navegación con trackpad o Ctrl + arrastrar. También permite copiar PNG e instrucciones, generar una lámina con todas las imágenes, conservar la numeración entre capturas y exportar ZIP o comparativas. [Documentación de Shot](shot/README.md).
 
 - **[Snippets](https://reynosoch.github.io/snippets/)**: biblioteca local de 56 comandos y recetas, búsqueda por tarea, detalle, favoritos, recientes, CRUD, import/export JSON y copia protegida de destructivos. [Documentación de Snippets](snippets/README.md).
 

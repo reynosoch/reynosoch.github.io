@@ -23,6 +23,7 @@ async function checkReference(source, reference) {
 }
 for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.html`)]) {
   const source=resolve(root,relativePath), html=await readFile(source,'utf8');
+  assert.doesNotMatch(html,/todo el desmadre|a lo menso|reventar la memoria|sin darle más vueltas/i,`Texto informal en la interfaz: ${relativePath}`);
   for(const match of html.matchAll(/(?:href|src)="([^"]+)"/g)) await checkReference(source,match[1]);
   const tool=tools.find(tool=>relativePath===`${tool.id}/index.html`);
   assert.ok(html.includes(`<title>${tool?`${tool.name} · Reynoso Toolchain`:'Reynoso Toolchain'}</title>`),`Título incorrecto: ${relativePath}`);
@@ -32,7 +33,7 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
       assert.match(html,/EN DESARROLLO/);
       assert.doesNotMatch(html,/<(?:input|textarea|form)\b/,`Placeholder con procesamiento simulado: ${relativePath}`);
       assert.deepEqual([...html.matchAll(/<script\b[^>]*src="([^"]+)"/g)].map(m=>m[1]),['../shared/recent-use.mjs']);
-      assert.match(html,/Todavía no procesa archivos ni ejecuta acciones/);
+      assert.match(html,/Aún no procesa archivos ni ejecuta acciones/);
     }
   }
 }
