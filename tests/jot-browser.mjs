@@ -22,6 +22,8 @@ try{
   browser=await chromium.launch({headless:true,...process.env.BROWSER_EXECUTABLE_PATH?{executablePath:process.env.BROWSER_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}:{} });
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:1366,height:900}});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  // An independently cached session module can arrive before Drop's application.
+  await page.route('**/drop/app.js*',async route=>{await new Promise(resolve=>setTimeout(resolve,300));await route.continue();});
   await page.goto(base+'/jot/');await page.waitForSelector('body[data-ready=true]');
   assert.equal(await page.locator('#username').inputValue(),'admin');
   assert.equal(await page.locator('#password').inputValue(),'');

@@ -515,3 +515,5 @@ const initial = parseCode(location.hash.slice(1)); if (initial) { $('room-input'
 window.addEventListener('online', networkInfo); window.addEventListener('offline', networkInfo);
 navigator.connection?.addEventListener('change', networkInfo);
 countText(); renderDevices(); networkInfo(); renderQueue();
+document.body.dataset.dropReady='true';
+document.dispatchEvent(new Event('drop:ready'));

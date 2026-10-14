@@ -1,6 +1,6 @@
 // Caches belong to this tool and scope; other tools share the Pages origin.
 const CACHE_PREFIX = `reynoso-drop:${self.registration.scope}:`;
-const CACHE = `${CACHE_PREFIX}v1.7.5`;
+const CACHE = `${CACHE_PREFIX}v1.7.6`;
 const SCOPE = new URL(self.registration.scope);
 const SHELL = [
   './workspace.mjs', './workspace-tools.mjs',

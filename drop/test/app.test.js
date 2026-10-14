@@ -34,8 +34,8 @@ function setup({hash = '', clipboard = {}, autoReceive = true, userAgent = 'Wind
   }
   const timersAPI = {setTimeout(fn, ms) { const id = ++timerId; timers.set(id,{fn,ms}); return id; },clearTimeout(id) { timers.delete(id); }};
   class TestURL extends URL { static createObjectURL(){const url=`blob:test-${createdUrls.length}`;createdUrls.push(url);return url;} static revokeObjectURL(url){revokedUrls.push(url);} }
-  const context = {...protocol, ...fileTools, ...clipboardTools, ...qrTools, ...deviceTools, ...scanTools, ...timersAPI, crypto, TextEncoder, URL:TestURL, Blob, File,
-    document:{getElementById:element,createElement:node}, navigator:{userAgent,platform,maxTouchPoints,onLine:true,clipboard},
+  const context = {...protocol, ...fileTools, ...clipboardTools, ...qrTools, ...deviceTools, ...scanTools, ...timersAPI, crypto, TextEncoder, URL:TestURL, Blob, File, Event,
+    document:{getElementById:element,createElement:node,body:{dataset:{}},dispatchEvent:()=>{}}, navigator:{userAgent,platform,maxTouchPoints,onLine:true,clipboard},
     window:{Peer,RTCPeerConnection(){},addEventListener(event,fn){windowEvents.set(event,fn);}}, history:{replaceState(){}}, location:{href:`https://reynosoch.github.io/drop/${hash}`,pathname:'/drop/',search:'',hash}, confirm:()=>true};
   element('auto-receive').checked=autoReceive;
   const source = readFileSync(new URL('../app.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/gm,'');

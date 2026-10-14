@@ -38,5 +38,6 @@ function consume(){
   }
 }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(consume,0),{once:true});
-else setTimeout(consume,0);
+// File handoffs need the change listener installed by app.js, not just parsed DOM.
+if(document.body.dataset.dropReady==='true')consume();
+else document.addEventListener('drop:ready',consume,{once:true});
