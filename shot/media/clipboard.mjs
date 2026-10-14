@@ -59,4 +59,4 @@ export async function readImages(){
  throw Error(failure?.message||'Usa Ctrl+V o Abrir capturas en este navegador.');
 }
 export function writeImage(makeBlob){if(!navigator.clipboard?.write||!window.ClipboardItem)throw Error('Este navegador no permite copiar imágenes. Descarga el PNG.');return navigator.clipboard.write([new ClipboardItem({'image/png':makeBlob()})]);}
-export async function writeText(text){if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);const area=document.createElement('textarea');area.value=text;document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();if(!ok)throw Error('No se pudo copiar. Descarga feedback.md desde Preparar para IA.');}
+export async function writeText(text){if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);const area=document.createElement('textarea');area.value=text;document.body.append(area);area.select();const ok=document.execCommand('copy');area.remove();if(!ok)throw Error('No se pudo copiar. Descargue las instrucciones desde Preparar revisión.');}

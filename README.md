@@ -35,7 +35,7 @@ La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta c
 | Diff | EN DESARROLLO | [Abrir Diff](https://reynosoch.github.io/diff/) | Qué cambió entre el archivo A y el B. |
 | Clean | EN DESARROLLO | [Abrir Clean](https://reynosoch.github.io/clean/) | Menos ruido en tus Excel y CSV. |
 | SQL Lab | EN DESARROLLO | [Abrir SQL Lab](https://reynosoch.github.io/sql/) | Consulta archivos mediante SQL. |
-| Context | EN DESARROLLO | [Abrir Context](https://reynosoch.github.io/context/) | Todo el proyecto, listo para otra IA. |
+| Context | EN DESARROLLO | [Abrir Context](https://reynosoch.github.io/context/) | Contexto del proyecto en un paquete. |
 | Prompt | EN DESARROLLO | [Abrir Prompt](https://reynosoch.github.io/prompt/) | Un objetivo claro. Un prompt completo. |
 | JSON Lab | EN DESARROLLO | [Abrir JSON Lab](https://reynosoch.github.io/json/) | Valida, ordena y transforma JSON. |
 | API Lab | EN DESARROLLO | [Abrir API Lab](https://reynosoch.github.io/api/) | Una petición rápida, sin abrir Postman. |
@@ -178,3 +178,13 @@ CUTOUT usa IMG.LY 1.7.0 + ONNX Runtime Web 1.21.0, en bundle local verificado, y
 - Preparar interacciones futuras mediante contratos explícitos; Audio Lab → Transcribe usa un contrato local versionado; los demás enlaces son navegación.
 - Mantener contraste alto con brillo bajo, targets táctiles, fallbacks de glass, motion reducido y carga de librerías por herramienta.
 - Ejecutar generate/check/build, revisar Verify main y Pages, verificar rutas y documentar límites de QA al cerrar.
+
+## Arquitectura visual de los portales
+
+El sistema compartido está en `shared/portal.css`: grafito, texto de alto contraste, acento naranja para herramientas y verde para páginas LAB. Usa fuentes del sistema sin descargas externas. Navegación y diálogos conservan glass moderado; los espacios de trabajo usan superficies sólidas.
+
+La portada prioriza buscar y abrir herramientas; el recorrido LAB queda en un desplegable secundario. Drop es una estación de transferencia; Transcribe, un escritorio de lectura; Shot, un editor; Convert, una mesa de conversión; Cutout, una mesa de inspección; Audio Lab, un espacio de señal; Snippets, una biblioteca de comandos; Jot, un cuaderno privado. Las páginas previstas adaptan su composición según datos, desarrollo, archivos, utilidades o contenido personal. URLs, IDs, motores y persistencia se conservan.
+
+Drop y Snippets incluyen copias locales generadas del CSS para seguir funcionando sin conexión, con versiones de caché separadas. `npm run generate` sincroniza estas copias. La interfaz, los atributos accesibles y los mensajes no deben mencionar IA ni agentes; las librerías y sus licencias siguen documentadas con exactitud.
+
+La revisión utilizó UI/UX Pro Max de `nextlevelbuilder/ui-ux-pro-max-skill`, revisión `7246805992a42b7bba37d4cac83b01416f0c6c44`, para jerarquía, contraste, estados, targets y adaptación. Conserva los colores de marca en lugar de adoptar la paleta sugerida automáticamente.

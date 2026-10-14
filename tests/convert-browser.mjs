@@ -22,7 +22,7 @@ try{
   await page.waitForSelector('body[data-pdf-tools=ready]');
   assert.equal(await page.locator('.window-bar .traffic i').count(),3);
   assert.equal(await page.locator('#pick-folder').isVisible(),true);
-  assert.match(await page.locator('.window-bar').innerText(),/convert-inbox\.local/i);
+  assert.equal(await page.locator('#window-count').innerText(),'0 archivos');
 
   assert.equal(await page.locator('.pdf-tool-card').count(),30);
   assert.equal(await page.locator('.pdf-tool-card .tool-icon').count(),30);

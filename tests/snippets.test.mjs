@@ -87,6 +87,6 @@ test('worker ignores other apps and deletes only outdated Snippets caches',async
   const handlers={};const deleted=[];let claimed=false;
   const context={URL,self:{location:{origin:'https://reynosoch.github.io'},registration:{scope:'https://reynosoch.github.io/snippets/'},clients:{claim:async()=>{claimed=true;}},addEventListener:(name,fn)=>{handlers[name]=fn;}},caches:{keys:async()=>['drop-v1','reynoso-snippets-v0','reynoso-snippets-v1','transcribe-model'],delete:async name=>{deleted.push(name);}}};
   vm.runInNewContext(await readFile(new URL('../snippets/service-worker.js',import.meta.url),'utf8'),context);
-  let promise;handlers.activate({waitUntil:p=>{promise=p;}});await promise;assert.deepEqual(deleted,['reynoso-snippets-v0']);assert.ok(claimed);
+  let promise;handlers.activate({waitUntil:p=>{promise=p;}});await promise;assert.deepEqual(deleted,['reynoso-snippets-v0','reynoso-snippets-v1']);assert.ok(claimed);
   for(const url of ['https://reynosoch.github.io/','https://reynosoch.github.io/drop/','https://reynosoch.github.io/transcribe/','https://other.example/snippets/','https://reynosoch.github.io/snippets/not-a-shell'])handlers.fetch({request:{url,method:'GET'},respondWith:()=>assert.fail('Out of scope intercepted')});
 });

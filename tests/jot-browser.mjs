@@ -19,7 +19,7 @@ async function unlock(page){
   }
 }
 try{
-  browser=await chromium.launch({headless:true});
+  browser=await chromium.launch({headless:true,...process.env.BROWSER_EXECUTABLE_PATH?{executablePath:process.env.BROWSER_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']}:{} });
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:1366,height:900}});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base+'/jot/');await page.waitForSelector('body[data-ready=true]');

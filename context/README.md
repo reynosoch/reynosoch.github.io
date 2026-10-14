@@ -2,7 +2,7 @@
 
 **EN DESARROLLO** · [Abrir página](https://reynosoch.github.io/context/) · [Volver al Toolchain](https://reynosoch.github.io/)
 
-Convertir un repo ZIP, README y archivos de código en un paquete de contexto para continuar un proyecto con una IA.
+Reunir un repositorio ZIP, README y archivos de código en un paquete de contexto para continuar el proyecto.
 
 ## Alcance previsto
 

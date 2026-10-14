@@ -2,7 +2,7 @@
 
 **EN DESARROLLO** · [Abrir página](https://reynosoch.github.io/prompt/) · [Volver al Toolchain](https://reynosoch.github.io/)
 
-Preparar instrucciones de desarrollo con el contexto que necesita el siguiente agente.
+Preparar instrucciones de desarrollo con objetivos, archivos y restricciones definidos.
 
 ## Alcance previsto
 

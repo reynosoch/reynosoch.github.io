@@ -23,6 +23,7 @@ test('activation removes only outdated Drop caches for this scope', async () => 
   assert.deepEqual(deleted,[
     'reynoso-drop:https://reynosoch.github.io/drop/:v1.7.1',
     'reynoso-drop:https://reynosoch.github.io/drop/:v1.7.2',
+    'reynoso-drop:https://reynosoch.github.io/drop/:v1.7.3',
   ]);
 });
 test('service worker leaves hub, Transcribe and other origins alone', () => {

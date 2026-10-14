@@ -1,5 +1,5 @@
-const CACHE='reynoso-snippets-v1';
-const SHELL=['./','./index.html','./snippets.css','./favicon.svg','./app.mjs','./data/default-snippets.mjs','./lib/model.mjs','./lib/search.mjs','./lib/storage.mjs','./lib/import-export.mjs','./lib/ui.mjs'];
+const CACHE='reynoso-snippets-v2';
+const SHELL=['./','./index.html','./snippets.css','./portal.css','./favicon.svg','./app.mjs','./data/default-snippets.mjs','./lib/model.mjs','./lib/search.mjs','./lib/storage.mjs','./lib/import-export.mjs','./lib/ui.mjs'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{
   for(const name of await caches.keys())if(name.startsWith('reynoso-snippets-')&&name!==CACHE)await caches.delete(name);
