@@ -43,6 +43,10 @@ function filter() {
   document.getElementById('search-count').textContent=search.value.trim() || state!=='all' ? `${count} herramienta${count===1?'':'s'}` : `${cards.length} herramientas · ${cards.filter(card=>card.dataset.ready==='true').length} listas para usar`;
 }
 search.addEventListener('input',filter);
+document.addEventListener('keydown',event=>{
+  if(event.key==='/'&&!event.ctrlKey&&!event.metaKey&&!event.altKey&&!document.querySelector('dialog[open]')&&!event.target.closest('input,textarea,select,[contenteditable=true]')){event.preventDefault();search.scrollIntoView({block:'center'});search.focus();}
+  if(event.key==='Escape'&&event.target===search){search.value='';filter();}
+});
 for(const button of buttons) button.addEventListener('click',()=>{
   state=button.dataset.stateFilter;
   for(const other of buttons) other.setAttribute('aria-pressed',String(other===button));

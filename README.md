@@ -97,6 +97,16 @@ Drop se migró desde `reynosoch/reynoso-drop` (`d74c31e`). El repositorio antigu
 
 ## Estructura y generación
 
+## Navegación y diseño de trabajo
+
+La portada incorpora accesos por tarea para capturas, audio, conversión y documentación. El selector **Herramientas**, disponible en todas las páginas (incluido el acceso de Jot), permite buscar por nombre o tarea, muestra únicamente herramientas disponibles y las ordena por uso reciente. Abre otra pestaña para conservar el trabajo actual. El catálogo mantiene las páginas en desarrollo y su orden por categorías.
+
+Atajos: **Alt + K** abre el selector; **/** enfoca la búsqueda de la portada cuando no está escribiendo en un campo. Escape cierra el selector, devuelve el foco y las flechas recorren sus enlaces. Los diálogos aíslan el foco, los botones mantienen áreas táctiles amplias y la vista móvil respeta el área segura del dispositivo.
+
+La base `shared/portal.css` conserva el contraste oscuro, acentos naranja/verde, superficies discretas y composiciones específicas para cada herramienta. Drop y Snippets reciben copias locales del CSS, selector y manifiesto mediante `npm run generate`, con cachés aisladas por herramienta para uso offline. El LAB independiente comparte esta base con una composición propia de registro y revisión.
+
+## Organización del código
+
 ```text
 index.html, hub.css, hub.mjs    Landing, diseño y filtros ligeros
 favicon.svg                    Identidad Reynoso

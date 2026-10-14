@@ -31,6 +31,11 @@ try {
     await page.goto(`${base}/${route}${route?'/':''}`);
     assert.equal(await page.locator('body').getAttribute('data-portal'),route||'toolchain');
     assert.doesNotMatch(await page.locator('body').innerText(),/\b(?:IA|AI)\b|inteligencia artificial/i);
+    await page.locator('#workspace-open').click();await page.locator('#workspace-dialog[open]').waitFor();
+    assert.equal(await page.locator('#workspace-search').evaluate(el=>el===document.activeElement),true);
+    await page.locator('#workspace-search').fill('capturas');assert(await page.locator('#workspace-list').getByText('Shot',{exact:true}).isVisible());
+    await page.locator('#workspace-search').fill('ninguna-coincidencia');assert(await page.locator('#workspace-empty').isVisible());
+    await page.keyboard.press('Escape');await page.waitForFunction(()=>document.activeElement===document.querySelector('#workspace-open'));
     for(const viewport of [{width:1440,height:960},{width:1024,height:768},{width:768,height:1024},{width:390,height:844}]){
       await page.setViewportSize(viewport);
       const metrics=await page.evaluate(()=>({width:document.documentElement.scrollWidth,inner:innerWidth,bg:getComputedStyle(document.body).backgroundColor}));
@@ -45,6 +50,10 @@ try {
     }
   }
   await page.goto(base+'/');
+  await page.keyboard.press('/');assert(await page.locator('#tool-search').evaluate(el=>el===document.activeElement));
+  await page.keyboard.press('Alt+k');assert(await page.locator('#workspace-dialog').isVisible());
+  await page.locator('#workspace-search').fill('Cutout');await page.keyboard.press('ArrowDown');assert.match(await page.evaluate(()=>document.activeElement.href),/\/cutout\/$/);
+  const popupPromise=page.waitForEvent('popup');await page.keyboard.press('Enter');const popup=await popupPromise;await popup.waitForLoadState();assert.match(popup.url(),/\/cutout\/$/);await popup.close();await page.keyboard.press('Escape');
   assert.equal(await page.locator('.ecosystem-details').getAttribute('open'),null);
   await page.locator('.ecosystem-details summary').click();
   assert(await page.locator('.ecosystem-flow').isVisible());

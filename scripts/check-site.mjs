@@ -35,7 +35,7 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
     if(!tool.ready) {
       assert.match(html,/EN DESARROLLO/);
       assert.doesNotMatch(html,/<(?:input|textarea|form)\b/,`Placeholder con procesamiento simulado: ${relativePath}`);
-      assert.deepEqual([...html.matchAll(/<script\b[^>]*src="([^"]+)"/g)].map(m=>m[1]),['../shared/recent-use.mjs']);
+      assert.deepEqual([...html.matchAll(/<script\b[^>]*src="([^"]+)"/g)].map(m=>m[1]),['../shared/recent-use.mjs','../shared/workspace.mjs?v=2']);
       assert.match(html,/Aún no procesa archivos ni ejecuta acciones/);
     }
   }
@@ -60,7 +60,7 @@ for(const route of tools.map(tool=>`${tool.id}/`)) {
 const landing=await readFile(resolve(root,'index.html'),'utf8');
 for(const tool of tools) assert.equal([...landing.matchAll(new RegExp(`data-tool="${tool.id}"`,'g'))].length,1,`Tarjeta duplicada o ausente: ${tool.id}`);
 const landingScripts=[...landing.matchAll(/<script\b[^>]*src="([^"]+)"[^>]*>/g)].map(match=>match[1]);
-assert.deepEqual(landingScripts,['./hub.mjs'],'El landing solo debe cargar su búsqueda ligera');
+assert.deepEqual(landingScripts,['./hub.mjs','./shared/workspace.mjs?v=2'],'El landing solo debe cargar búsqueda y navegación ligeras');
 const hub=await readFile(resolve(root,'hub.mjs'),'utf8');
 assert.doesNotMatch(hub,/peerjs|tesseract|transformers|duckdb|serviceWorker\.register/i,'El landing no debe cargar motores');
 for(const match of hub.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g)) await checkReference(resolve(root,'hub.mjs'),match[1]);
