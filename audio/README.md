@@ -14,7 +14,17 @@
 
 El original permanece intacto. Una voz inaudible, varios hablantes superpuestos, golpes o música fuerte pueden seguir sin ser comprensibles. La limpieza no garantiza mayor precisión de Whisper: prueba el fragmento antes y reduce intensidad o desactiva ruido/filtros si empeoran la voz.
 
-## Pipeline y modelos
+## Dividir una grabación
+
+En **Dividir y descargar**, seleccione los minutos por parte (de 0.1 a 60, máximo 200 partes). **Preparar y dividir** utiliza el preset balanceado recomendado: canal automático, reducción de ruido, filtro de graves, nivelado de voz, compresión, limitador y compresión balanceada de pausas. Requiere la misma autorización local que preparar el audio. **Dividir resultado actual** conserva los ajustes del último resultado, no los cambios pendientes en los controles.
+
+El audio se procesa una sola vez, por bloques; las partes son cortes exactos del PCM preparado, sin huecos ni muestras duplicadas. Todas reciben los mismos filtros y conservan sus niveles. No se vuelve a decodificar la grabación completa en memoria para dividirla. Si RNNoise falla, el aviso y el resumen de filtros indican que no se aplicó reducción de ruido.
+
+La distribución visual y cada tarjeta muestran número, inicio, fin, duración y tamaño. La división es por duración fija: un corte puede quedar dentro de una frase; no se promete segmentación temática. Los tiempos corresponden al **resultado procesado**, no necesariamente al original si se comprimieron pausas. Cada parte se puede escuchar o descargar como WAV; también se pueden descargar todas o una selección en ZIP. El ZIP incluye `partes.json` con los ajustes, la reducción de ruido realmente aplicada y el mapa de cada parte hacia los tiempos originales.
+
+Salida: WAV PCM de 16 bits, mono, 16 kHz, aproximadamente 1.83 MiB por minuto. Dividir reduce el tamaño individual, **no el peso total**; WAV puede ser mayor que un MP3/M4A original. No se exporta audio comprimido ni se dividen videos manteniendo la imagen. ZIP mediante JSZip 3.10.2, cargado localmente bajo demanda y sin recompresión; máximo 128 MiB de audio por ZIP para acotar memoria. Para archivos mayores, descargue grupos más pequeños o partes individuales. La creación de ZIP bloquea temporalmente el cambio de fuente y el procesamiento para conservar el resultado. Las partes no se guardan entre sesiones; descárguelas antes de cerrar.
+
+## Detalle del pipeline
 
 - **Lectura incremental:** Mediabunny **1.61.3** con BlobSource, caché de 4 MiB y AudioSampleSink, reutilizando los bundles locales de Transcribe. Decoder independiente dentro de un Worker de Audio Lab; cada AudioSample se cierra al copiarlo. No se usa `file.arrayBuffer()` ni Web Audio completo para una junta larga.
 - **Análisis:** slabs de 10 s, todos los canales individualmente, remuestreo con filtro windowed-sinc anti-aliasing a 16 kHz. Estadísticas acumuladas y peaks cada 100 ms; no dibuja millones de samples. La waveform distingue habla Silero, silencio/señal baja, señal sin habla detectada y cortes. El color de señal sin voz es orientativo (RMS > .0005, no un clasificador de ruido); puede incluir ruido o voz no reconocida.

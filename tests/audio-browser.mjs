@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
 import {wavHeader,validateTimeMap} from '../audio/core.mjs';
+import JSZip from 'jszip';
 const root=resolve(fileURLToPath(new URL('../',import.meta.url))),scratch=await mkdtemp(resolve(tmpdir(),'audio-qa-'));
 const speech=await readFile(resolve(root,'audio/tests/fixtures/speech.wav'));
 // WAV fixture has an optional LIST chunk. Locate its data chunk rather than assuming 44 bytes.
@@ -42,11 +43,23 @@ try{
     await page.click('#prepare');await page.click('#approve');await page.waitForFunction(()=>!document.querySelector('#result-panel').hidden&&!document.querySelector('#prepare').disabled,null,{timeout:900000});
     const mapDownload=page.waitForEvent('download');await page.click('#map');const map=JSON.parse(await readFile(await(await mapDownload).path(),'utf8'));assert.equal(map.originalDuration,duration);assert.ok(Math.abs(validateTimeMap(map.timeMap,duration)-map.outputDuration)<.001);assert(map.outputDuration<duration*.8);
     const audioDownload=page.waitForEvent('download');await page.click('#download');const output=await readFile(await(await audioDownload).path());assert.ok(Math.abs((output.length-44)/32000-map.outputDuration)<.001);let peak=0;for(let at=44;at<output.length;at+=2)peak=Math.max(peak,Math.abs(output.readInt16LE(at))/32768);assert(peak<=.8913);
+    if(duration===30){
+      await page.fill('#split-minutes','0.1');await page.click('#split-create');
+      const count=Math.ceil(map.outputDuration/6);assert.equal(await page.locator('.audio-part').count(),count);assert.match(await page.locator('#split-filters').innerText(),/Reducción de ruido.*Nivelado de voz/);
+      await page.locator('.audio-part').first().getByRole('button',{name:'Escuchar',exact:true}).click();assert(await page.locator('#part-player').isVisible());
+      const oneDownload=page.waitForEvent('download');await page.locator('.audio-part').first().getByRole('button',{name:'Descargar WAV'}).click();const one=await readFile(await(await oneDownload).path());assert.deepEqual(one.subarray(44),output.subarray(44,44+6*32000));
+      await page.click('#split-select-none');assert(await page.locator('#split-download-selected').isDisabled());await page.locator('.audio-part input').nth(1).check();
+      const selectedDownload=page.waitForEvent('download');await page.click('#split-download-selected');const selectedZip=await JSZip.loadAsync(await readFile(await(await selectedDownload).path()));const manifest=JSON.parse(await selectedZip.file('partes.json').async('string'));assert.equal(manifest.parts.length,1);assert.equal(manifest.parts[0].start,6);assert.equal(manifest.actualDenoise,true);assert(manifest.settings.normalize);assert.deepEqual((await selectedZip.file(manifest.parts[0].file).async('nodebuffer')).subarray(44),output.subarray(44+6*32000,44+12*32000));
+      await page.waitForFunction(()=>!document.querySelector('#split-download-all').disabled);const allDownload=page.waitForEvent('download');await page.click('#split-download-all');const allZip=await JSZip.loadAsync(await readFile(await(await allDownload).path()));const allManifest=JSON.parse(await allZip.file('partes.json').async('string'));assert.equal(allManifest.parts.length,count);assert.deepEqual(Buffer.concat(await Promise.all(allManifest.parts.map(async p=>(await allZip.file(p.file).async('nodebuffer')).subarray(44)))),output.subarray(44));
+      await page.waitForFunction(()=>!document.querySelector('#prepare').disabled);
+    }
     console.log(`Audio ${duration}s → ${map.outputDuration.toFixed(3)}s · ${map.timeMap.length} spans · peak ${peak.toFixed(5)} · Silero/RNNoise real`);
   }
+  await page.selectOption('#preset','fast');await page.click('#split-prepare');await page.click('#approve');await page.waitForFunction(()=>!document.querySelector('#prepare').disabled&&document.querySelectorAll('.audio-part').length>0,null,{timeout:120000});assert.equal(await page.locator('#preset').inputValue(),'balanced');assert(await page.locator('#denoise').isChecked());assert(await page.locator('#highpass').isChecked());assert(await page.locator('#compress').isChecked());assert.match(await page.locator('#split-filters').innerText(),/Reducción de ruido/);
+  await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.setViewportSize({width:1280,height:1000});
   await page.click('#preview');await page.click('#approve');await page.waitForFunction(()=>!document.querySelector('#ab').disabled,null,{timeout:120000});await page.click('#ab');await page.click('#ab');
   await page.click('#handoff');const popupPromise=page.waitForEvent('popup');await page.click('#approve');const receiver=await popupPromise;await receiver.locator('#audio-lab-note').waitFor();assert((await receiver.locator('#file-name').innerText()).endsWith('-clean.wav'));assert.equal(await receiver.locator('#enhance').isChecked(),false);
-  await page.click('#remove');await page.waitForFunction(()=>document.querySelector('#file-card').hidden);assert(await receiver.evaluate(async()=>{const response=await fetch(document.querySelector('#audio-preview').src);return response.ok&&(await response.blob()).size>44;}));
+  await page.click('#remove');await page.waitForFunction(()=>document.querySelector('#file-card').hidden);assert.equal(await page.locator('.audio-part').count(),0);assert(await page.locator('#split-download-all').isDisabled());assert(await receiver.evaluate(async()=>{const response=await fetch(document.querySelector('#audio-preview').src);return response.ok&&(await response.blob()).size>44;}));
   await receiver.setInputFiles('#file-input',resolve(root,'audio/tests/fixtures/speech.wav'));assert.equal(await receiver.locator('#audio-lab-note').count(),0);assert.equal(await receiver.locator('#file-name').innerText(),'speech.wav');
   await page.reload();await page.locator('#recovery-box').waitFor();await page.setInputFiles('#file-input',lastFixture);await page.locator('#consent[open]').waitFor();await page.locator('#consent button[value="cancel"]').click();await page.click('#restore');await page.click('#approve');await waitReady();assert.match(await page.locator('#status').innerText(),/recuperado/);
   await page.click('#remove');await page.waitForFunction(()=>document.querySelector('#file-card').hidden);await page.click('#forget');await page.locator('#recovery-box').waitFor({state:'hidden'});
