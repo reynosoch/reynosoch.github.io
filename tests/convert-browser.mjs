@@ -17,12 +17,33 @@ try{
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:1366,height:768}});
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
+  await page.route(url=>url.href==='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm',route=>route.fulfill({status:200,contentType:'text/javascript',headers:{'Access-Control-Allow-Origin':'*'},body:`export async function createWorker(){return {setParameters:async()=>{},recognize:async()=>({data:{text:'HELLO 67',confidence:99}}),terminate:async()=>{}}} export default {createWorker};`}));
   await page.goto(base+'/convert/');
   await page.waitForSelector('body[data-ready=true]');
+  await page.waitForSelector('body[data-image-text-ready=true]');
   await page.waitForSelector('body[data-pdf-tools=ready]');
   assert.equal(await page.locator('.window-bar .traffic i').count(),3);
   assert.equal(await page.locator('#pick-folder').isVisible(),true);
   assert.equal(await page.locator('#window-count').innerText(),'0 archivos');
+  assert.equal(await page.locator('#image-text-panel').isVisible(),true);
+  assert.match(await page.locator('#image-text-panel').innerText(),/Texto de imagen/i);
+
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlR9hAAAAAASUVORK5CYII=','base64');
+  await page.setInputFiles('#file-input',{name:'captura.png',mimeType:'image/png',buffer:png});
+  await page.waitForFunction(()=>document.querySelectorAll('#image-text-sources .image-text-source').length===1);
+  assert.match(await page.locator('#image-text-sources').innerText(),/captura\.png/i);
+  assert.match(await page.locator('#image-text-sources').innerText(),/Extraer texto/i);
+  await page.click('[data-extract-image-text]');
+  await page.waitForFunction(()=>document.querySelector('#image-text-results textarea')?.value.includes('HELLO 67'));
+  assert.equal(await page.locator('#image-text-results textarea').inputValue(),'HELLO 67');
+  assert.match(await page.locator('#image-text-results').innerText(),/99%/);
+  const textDownload=page.waitForEvent('download');
+  await page.click('[data-image-text-download]');
+  const textFile=await textDownload,textPath=await textFile.path();
+  assert.equal(textFile.suggestedFilename(),'captura-texto.txt');
+  assert.equal(await readFile(textPath,'utf8'),'HELLO 67');
+  await page.click('#clear');
+  assert.match(await page.locator('#image-text-sources').innerText(),/aparecerán aquí/i);
 
   assert.equal(await page.locator('.pdf-tool-card').count(),30);
   assert.equal(await page.locator('.pdf-tool-card .tool-icon').count(),30);
@@ -98,7 +119,7 @@ try{
   assert.match(tsvText,/Javier\tdev/);
 
   assert.deepEqual(errors,[]);
-  console.log('Convert browser: PDF Studio + iconos + uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV verificados.');
+  console.log('Convert browser: extracción de texto de imagen + PDF Studio + uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV verificados.');
 } finally {
   await browser?.close();
   await new Promise(r=>server.close(r));
