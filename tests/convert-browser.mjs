@@ -37,11 +37,11 @@ try{
   await page.waitForFunction(()=>document.querySelector('#image-text-results textarea')?.value.includes('HELLO 67'));
   assert.equal(await page.locator('#image-text-results textarea').inputValue(),'HELLO 67');
   assert.match(await page.locator('#image-text-results').innerText(),/99%/);
-  const textDownload=page.waitForEvent('download');
-  await page.click('[data-image-text-download]');
-  const textFile=await textDownload,textPath=await textFile.path();
-  assert.equal(textFile.suggestedFilename(),'captura-texto.txt');
-  assert.equal(await readFile(textPath,'utf8'),'HELLO 67');
+  assert.equal(await page.locator('[data-image-text-copy]').isEnabled(),true);
+  assert.equal(await page.locator('[data-image-text-download]').isEnabled(),true);
+  assert.match(await page.locator('[data-image-text-download]').innerText(),/Descargar \.txt/i);
+  await page.fill('#image-text-results textarea','HELLO 67 EDITADO');
+  assert.equal(await page.locator('#image-text-results textarea').inputValue(),'HELLO 67 EDITADO');
   await page.click('#clear');
   assert.match(await page.locator('#image-text-sources').innerText(),/aparecerán aquí/i);
 
@@ -119,7 +119,7 @@ try{
   assert.match(tsvText,/Javier\tdev/);
 
   assert.deepEqual(errors,[]);
-  console.log('Convert browser: extracción de texto de imagen + PDF Studio + uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV verificados.');
+  console.log('Convert browser: extracción y edición directa de texto de imagen + PDF Studio + uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV verificados.');
 } finally {
   await browser?.close();
   await new Promise(r=>server.close(r));
