@@ -40,11 +40,11 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
     }
   }
 }
-for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data','audio','audio/vendor','shot','shot/editor','shot/media','shot/ui','shot/vendor','convert','cutout','cutout/vendor']) {
+for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data','audio','audio/vendor','shot','shot/editor','shot/media','shot/ui','shot/vendor','convert','cutout','cutout/vendor','brief']) {
   for (const name of await readdir(resolve(root,directory))) {
     if (!/\.(?:m?js)$/.test(name)) continue;
       const source=resolve(root,directory,name), content=await readFile(source,'utf8');
-    if(directory.startsWith('transcribe')||directory.startsWith('snippets')||directory.startsWith('audio')||directory==='shared'||directory.startsWith('shot')||directory==='convert'||directory==='cutout') execFileSync(process.execPath,['--check',source]);
+    if(directory.startsWith('transcribe')||directory.startsWith('snippets')||directory.startsWith('audio')||directory==='shared'||directory.startsWith('shot')||directory==='convert'||directory==='cutout'||directory==='brief') execFileSync(process.execPath,['--check',source]);
     for(const match of content.matchAll(/(?:from\s+|import\s*\(|new URL\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g)) await checkReference(source,match[2]);
   }
 }

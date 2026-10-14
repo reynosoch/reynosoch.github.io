@@ -13,7 +13,7 @@ export function searchScore(snippet,query) {
 }
 export function selectSnippets(snippets,{query='',technology='Todas',filter='all'}={}) {
   const selected=snippets.filter(s=>(technology==='Todas'||s.technology===technology)&&(filter!=='favorites'||s.favorite)&&(filter!=='recent'||s.lastUsed)&&(filter!=='used'||s.usageCount>0)&&searchScore(s,query)>0);
-  selected.sort((a,b)=>filter==='recent'?Date.parse(b.lastUsed)-Date.parse(a.lastUsed):filter==='used'?b.usageCount-a.usageCount:searchScore(b,query)-searchScore(a,query)||a.name.localeCompare(b.name,'es'));
+  selected.sort((a,b)=>filter==='recent'?Date.parse(b.lastUsed)-Date.parse(a.lastUsed):filter==='used'?b.usageCount-a.usageCount:searchScore(b,query)-searchScore(a,query)||Number(b.custom)-Number(a.custom)||(a.custom&&b.custom?(Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0):0)||a.name.localeCompare(b.name,'es'));
   return filter==='recent'?selected.slice(0,20):selected;
 }
 export function frequentSnippets(snippets) {

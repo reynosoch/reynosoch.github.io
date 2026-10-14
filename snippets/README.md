@@ -69,6 +69,8 @@ snippets/
 
 ## Desarrollo y pruebas
 
+La biblioteca muestra primero los snippets personalizados, del más reciente al más antiguo según `createdAt`, y después los incluidos por nombre. El orden persiste tras recargar y se conserva al exportar/importar. Editar una entrada no cambia su fecha de creación. La búsqueda prioriza coincidencias; Recientes sigue ordenando por última copia y Más usados por número de copias. Los accesos rápidos mantienen su función de uso frecuente.
+
 Desde la raíz del repo, con Node 22+:
 
 ```sh

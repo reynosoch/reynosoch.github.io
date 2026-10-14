@@ -6,6 +6,8 @@ Herramientas pequeñas para quitar pasos grandes. Una colección personal para d
 
 **Abrir → hacer una tarea → copiar, descargar o enviar → continuar trabajando.**
 
+**[Brief](https://reynosoch.github.io/brief/)** organiza las notas de Shot, reuniones y proyectos en un encargo con objetivo, cambios, restricciones, evidencia y criterios de aceptación. Incluye cuatro plantillas editables, borradores locales, copia, Markdown y respaldo JSON. No ejecuta las instrucciones ni adjunta las imágenes; el texto se guarda sin cifrar en este navegador. [Documentación](brief/README.md).
+
 ## Toolchain y LAB
 
 **Toolchain contiene herramientas adoptadas:** utilidades que ya forman parte del flujo cotidiano y deben mantenerse estables. **[Reynoso LAB](https://reynosoch.github.io/reynoso-lab/) contiene experimentos:** repositorios por descubrir, inspeccionar, probar, documentar y, quizá, promover.
@@ -20,7 +22,7 @@ LAB → probar → aprender → descartar o adoptar → Toolchain / proyecto / f
 
 Los proyectos externos no se copian aquí. LAB conserva su registro y sus notas; Toolchain recibe únicamente una herramienta cuando ya demostró ser útil y merece mantenimiento propio.
 
-La portada es un acceso de trabajo, con el mismo sistema Liquid Glass de LAB: superficies translúcidas, brillo interno, profundidad, radios y navegación compartidos. Toolchain conserva el acento naranja y usa iconos locales seleccionados de Lucide 1.55.0; su licencia vive en `shared/LUCIDE_LICENSE.txt`. No es un portfolio. **Drop, Transcribe, Audio Lab, Snippets, Shot, Convert y Cutout están LISTO**; las otras **17 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
+La portada es un acceso de trabajo, con el mismo sistema Liquid Glass de LAB: superficies translúcidas, brillo interno, profundidad, radios y navegación compartidos. Toolchain conserva el acento naranja y usa iconos locales seleccionados de Lucide 1.55.0; su licencia vive en `shared/LUCIDE_LICENSE.txt`. No es un portfolio. **Brief, Drop, Transcribe, Audio Lab, Snippets, Shot, Convert, Cutout y Jot están LISTO**; las otras **16 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
 
 ## Accesos directos para favoritos
 
@@ -29,6 +31,7 @@ La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta c
 <!-- TOOLCHAIN_CATALOG_START -->
 | Herramienta | Estado | URL | Propósito |
 | --- | --- | --- | --- |
+| Brief | LISTO | [Abrir Brief](https://reynosoch.github.io/brief/) | Objetivo, evidencia y condiciones en un encargo completo. |
 | Drop | LISTO | [Abrir Drop](https://reynosoch.github.io/drop/) | Texto y archivos, de una pantalla a otra. |
 | Transcribe | LISTO | [Abrir Transcribe](https://reynosoch.github.io/transcribe/) | De audio o captura a texto editable. |
 | Inspect | EN DESARROLLO | [Abrir Inspect](https://reynosoch.github.io/inspect/) | Conoce tus archivos antes de usarlos. |

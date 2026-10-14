@@ -1,4 +1,6 @@
 const paths = {
+  brief:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M9 9h6M9 13h6M9 17h4"/>',
+  copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V3H3v13h5"/>',
   cutout:'<path d="M4 4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5m0-6V4"/><path d="m8 16 8-8M8 8l8 8"/>',
   'arrow-down':'<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
   drop:'<rect x="2" y="3" width="12" height="10" rx="2"/><path d="M1 16h14m3-9 3 3-3 3M15 10h6"/><rect x="16" y="16" width="6" height="7" rx="1.5"/>',

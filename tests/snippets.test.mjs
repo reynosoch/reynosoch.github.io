@@ -31,6 +31,17 @@ test('technology filter combines with task and favorites filters',()=>{
   assert.deepEqual(selectSnippets(list,{technology:'Git / GitHub',filter:'favorites'}).map(s=>s.id),[get('git-status').id]);
   assert.equal(selectSnippets(list,{technology:'Java',query:'python'}).length,0);
 });
+test('newest custom snippets lead the library, while use filters retain their meaning',async()=>{
+  const {library,factory}=await fresh();
+  const old=custom({id:'custom:old',name:'A antiguo',createdAt:'2026-10-01T12:00:00Z',updatedAt:'2026-10-14T12:00:00Z',lastUsed:'2026-10-14T12:00:00Z',usageCount:9});
+  const recent=custom({id:'custom:new',name:'Z nuevo',createdAt:'2026-10-13T12:00:00Z',lastUsed:'2026-10-13T12:00:00Z',usageCount:1});
+  await library.put(old);await library.put(recent);
+  const list=await createLibrary(factory).all();
+  assert.deepEqual(selectSnippets(list).slice(0,2).map(s=>s.id),['custom:new','custom:old']);
+  assert.deepEqual(selectSnippets(list,{filter:'recent'}).slice(0,2).map(s=>s.id),['custom:old','custom:new']);
+  assert.equal(selectSnippets(list,{filter:'used'})[0].id,'custom:old');
+  assert.equal(selectSnippets(list,{query:'Z nuevo'})[0].id,'custom:new');
+});
 test('IndexedDB initialization is idempotent, survives reopening and preserves deletions',async()=>{
   const {library,factory}=await fresh();await library.put(custom());await library.remove(get('git-status').id);
   const reopened=createLibrary(factory);await reopened.initialize();const all=await reopened.all();
