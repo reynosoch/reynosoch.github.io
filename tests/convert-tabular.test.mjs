@@ -18,13 +18,12 @@ test('repairs one-column workbooks only when all rows form a consistent table',(
   assert.deepEqual(repairSingleColumn([['A|B'],['1|2']]).rows,[['A','B'],['1','2']]);
   assert.equal(repairSingleColumn([['A','B'],['1','2']]),null);
 });
-test('worksheet has readable widths, frozen header, filters and safe literal identifiers',()=>{
+test('worksheet has readable widths, no decoration and safe literal identifiers',()=>{
   const xml=worksheetXml([['Part','Qty','Cost'],['00123','2','3.50'],['=1+1','0','18.00']]);
-  assert.match(xml,/<autoFilter ref="A1:C3"/);
-  assert.match(xml,/<pane ySplit="1"/);
+  assert.doesNotMatch(xml,/<autoFilter|<pane| s="|<fill|<color/);
   assert.match(xml,/<cols><col/);
   assert.match(xml,/<c r="A2"[^>]*t="inlineStr"/);
-  assert.match(xml,/<c r="B2" s="0"><v>2<\/v>/);
+  assert.match(xml,/<c r="B2"><v>2<\/v>/);
   assert.doesNotMatch(xml,/<f>/);
   assert.doesNotMatch(worksheetXml([['A'],['B']],false),/<autoFilter|<pane/);
 });

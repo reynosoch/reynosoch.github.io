@@ -68,6 +68,7 @@ try{
   await page.setInputFiles('#file-input',{name:'inventory.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
   await page.click('[data-format=xlsx]');
   await page.click('#convert');
+  await page.locator('#table-review-confirm').click();
   await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
   assert.match(await page.locator('#results').innerText(),/inventory\.xlsx/i);
   const xlsxDownload=page.waitForEvent('download');
@@ -86,24 +87,54 @@ try{
   await page.click('#clear');
   await page.setInputFiles('#file-input',{name:'bom.txt',mimeType:'text/plain',buffer:Buffer.from(pipe)});
   await page.click('[data-format=xlsx]');await page.click('#convert');
+  await page.locator('.table-review[open]').waitFor();
+  assert.equal(await page.locator('#table-separator').inputValue(),'|');
+  assert.match(await page.locator('.table-review-detected').innerText(),/Barra vertical/);
+  assert.equal(await page.locator('.table-preview tr').count(),3);
+  await page.locator('#table-separator').selectOption('none');
+  assert.match(await page.locator('.table-review-count').innerText(),/1 columnas/);
+  await page.locator('#table-separator').selectOption('|');
+  await page.locator('#table-review-confirm').click();
   await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
   assert.match(await page.locator('#results').innerText(),/2 filas · 5 columnas/);
   const tableDownload=page.waitForEvent('download');await page.click('#download-all');
   const tableZip=await JSZip.loadAsync(await readFile(await (await tableDownload).path()));
   const tableXml=await tableZip.file('xl/worksheets/sheet1.xml').async('text');
-  assert.match(tableXml,/<autoFilter ref="A1:E3"/);assert.match(tableXml,/<pane ySplit="1"/);
+  assert.match(tableXml,/<dimension ref="A1:E3"/);assert.doesNotMatch(tableXml,/<autoFilter|<pane| s="/);
   assert.match(tableXml,/<c r="E2"[^>]*><is><t[^>]*>179A/);
   assert.match(tableXml,/IC-MEM 8GB,FBGA/);assert.match(tableXml,/00123/);
-  assert(tableZip.file('xl/styles.xml'));
+  assert.equal(tableZip.file('xl/styles.xml'),null);
   // Repair an XLSX produced by the old text-only conversion, even for XLSX → XLSX.
   const oldZip=await JSZip.loadAsync(await readFile(xlsxPath));
   oldZip.file('xl/worksheets/sheet1.xml','<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+pipe.split('\n').map((line,i)=>`<row r="${i+1}"><c r="A${i+1}" t="inlineStr"><is><t>${line}</t></is></c></row>`).join('')+'</sheetData></worksheet>');
   await page.click('#clear');
   await page.setInputFiles('#file-input',{name:'old.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:await oldZip.generateAsync({type:'nodebuffer'})});
-  await page.click('#convert');await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
+  await page.click('#convert');await page.locator('#table-review-confirm').click();await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
   const repairDownload=page.waitForEvent('download');await page.click('#download-all');
   const repairedZip=await JSZip.loadAsync(await readFile(await (await repairDownload).path()));
-  assert.match(await repairedZip.file('xl/worksheets/sheet1.xml').async('text'),/<autoFilter ref="A1:E3"/);
+  assert.match(await repairedZip.file('xl/worksheets/sheet1.xml').async('text'),/<dimension ref="A1:E3"/);
+
+  await page.click('#clear');
+  await page.setInputFiles('#file-input',{name:'custom.txt',mimeType:'text/plain',buffer:Buffer.from('Part:Qty\nABC:2')});
+  await page.click('#convert');await page.locator('.table-review[open]').waitFor();
+  await page.locator('#table-separator').selectOption('custom');
+  assert(await page.locator('#table-review-confirm').isDisabled());
+  await page.locator('#table-custom-separator').fill(':');
+  assert.match(await page.locator('.table-review-count').innerText(),/2 columnas/);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(()=>!document.querySelector('#convert').disabled);
+  assert.equal(await page.locator('#results .result-card').count(),0);
+  await page.click('#clear');
+  await page.setInputFiles('#file-input',[
+    {name:'pipe.txt',mimeType:'text/plain',buffer:Buffer.from('Part|Qty\nABC|2')},
+    {name:'semi.txt',mimeType:'text/plain',buffer:Buffer.from('Part;Qty\nXYZ;3')}
+  ]);
+  await page.click('#convert');await page.locator('.table-review[open]').waitFor();
+  assert.equal(await page.locator('#table-separator').inputValue(),'|');await page.locator('#table-review-confirm').click();
+  await page.waitForFunction(()=>document.querySelector('.table-review-file')?.textContent==='semi.txt');
+  assert.equal(await page.locator('#table-separator').inputValue(),';');await page.locator('#table-review-confirm').click();
+  await page.waitForFunction(()=>!document.querySelector('#convert').disabled);
+  assert.equal(await page.locator('#results .result-card').count(),2);
 
   await page.click('#clear');
   await page.setInputFiles('#file-input',{name:'notes.txt',mimeType:'text/plain',buffer:Buffer.from('Uno\nDos\nTres')});

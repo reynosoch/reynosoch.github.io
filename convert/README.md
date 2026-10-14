@@ -122,6 +122,8 @@ Convert se conserva fuera del generador de placeholders mediante `standaloneRead
 
 TXT y LOG detectan tablas separadas por `|`, tabuladores, punto y coma o comas cuando todas las filas tienen el mismo ancho. CSV también reconoce esos separadores. Admite campos entre comillas y conserva las comas dentro de las descripciones al usar `|`. No divide texto común por espacios.
 
-El XLSX incluye encabezado fijo y contrastante, filtros, anchos según el contenido y filas alternadas. El resultado muestra filas y columnas. Códigos con ceros iniciales, números largos, fechas y fórmulas aparentes se conservan como texto; cantidades simples quedan como números.
+Antes de generar una hoja desde texto, un panel indica el separador detectado y muestra una vista previa. Puede elegir `|`, coma, punto y coma, tabulación, otro carácter o conservar una sola columna. En lotes se revisa cada archivo por separado. Cancelar cierra la revisión sin generar ese archivo.
+
+El XLSX solo organiza las columnas y ajusta sus anchos: no agrega colores, estilos decorativos, filtros ni encabezados fijos. El resultado muestra filas y columnas. Códigos con ceros iniciales, números largos, fechas y fórmulas aparentes se conservan como texto; cantidades simples quedan como números.
 
 También repara XLSX con tablas delimitadas en una sola columna al elegir XLSX como salida. Utiliza la primera hoja; no reconstruye diseños ni hojas adicionales. No divide automáticamente tablas de ancho irregular para evitar desplazar datos.
