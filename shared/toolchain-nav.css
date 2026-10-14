@@ -5,3 +5,10 @@
 @supports (backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px)){.tc-header{backdrop-filter:blur(26px) saturate(140%);-webkit-backdrop-filter:blur(26px) saturate(140%)}}
 @media(max-width:600px){.tc-header{width:calc(100% - 28px);padding:9px 10px!important;margin-top:12px!important;gap:6px;border-radius:16px}.tc-left{gap:6px}.tc-current{padding-left:10px;font-size:12px}.tc-header a{font-size:13px;padding:0 8px}.tc-repo{font-size:11px!important}}
 @media(prefers-reduced-transparency:reduce){.tc-header{background:#202126;backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+/* Drop keeps the home action visible while working in the transfer panels. */
+body[data-portal=drop] .tc-header{position:sticky;top:10px;z-index:20}
+body[data-portal=drop] .tc-home{background:#f5821f18;border:1px solid #f5821f70;color:#ffbb80;font-weight:650}
+body[data-portal=drop] .tc-home:hover{background:#f5821f2b}
+body[data-portal=drop] .drop-home-footer{color:#ffbb80;padding:10px 0;text-decoration:underline;text-underline-offset:4px}
+@media(max-width:600px){body[data-portal=drop] .tc-header .tc-repo{display:none}body[data-portal=drop] .tc-header .tc-current{display:none}body[data-portal=drop] .tc-header{gap:6px;flex-wrap:nowrap}body[data-portal=drop] .workspace-trigger{margin-left:auto;flex-shrink:0}}

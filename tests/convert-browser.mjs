@@ -81,6 +81,30 @@ try{
   assert.match(sheet,/ABC-1/);
   assert.match(sheet,/18\.00/);
 
+  // Realistic QAD export: commas belong to descriptions, pipes separate columns.
+  const pipe='Seq  |Parent Item|Description|Usage|Site\n  1|VP-123|IC-MEM 8GB,FBGA|1.25|179A\n2|00123|Vendor, Inc.|0|1795';
+  await page.click('#clear');
+  await page.setInputFiles('#file-input',{name:'bom.txt',mimeType:'text/plain',buffer:Buffer.from(pipe)});
+  await page.click('[data-format=xlsx]');await page.click('#convert');
+  await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
+  assert.match(await page.locator('#results').innerText(),/2 filas · 5 columnas/);
+  const tableDownload=page.waitForEvent('download');await page.click('#download-all');
+  const tableZip=await JSZip.loadAsync(await readFile(await (await tableDownload).path()));
+  const tableXml=await tableZip.file('xl/worksheets/sheet1.xml').async('text');
+  assert.match(tableXml,/<autoFilter ref="A1:E3"/);assert.match(tableXml,/<pane ySplit="1"/);
+  assert.match(tableXml,/<c r="E2"[^>]*><is><t[^>]*>179A/);
+  assert.match(tableXml,/IC-MEM 8GB,FBGA/);assert.match(tableXml,/00123/);
+  assert(tableZip.file('xl/styles.xml'));
+  // Repair an XLSX produced by the old text-only conversion, even for XLSX → XLSX.
+  const oldZip=await JSZip.loadAsync(await readFile(xlsxPath));
+  oldZip.file('xl/worksheets/sheet1.xml','<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+pipe.split('\n').map((line,i)=>`<row r="${i+1}"><c r="A${i+1}" t="inlineStr"><is><t>${line}</t></is></c></row>`).join('')+'</sheetData></worksheet>');
+  await page.click('#clear');
+  await page.setInputFiles('#file-input',{name:'old.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:await oldZip.generateAsync({type:'nodebuffer'})});
+  await page.click('#convert');await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
+  const repairDownload=page.waitForEvent('download');await page.click('#download-all');
+  const repairedZip=await JSZip.loadAsync(await readFile(await (await repairDownload).path()));
+  assert.match(await repairedZip.file('xl/worksheets/sheet1.xml').async('text'),/<autoFilter ref="A1:E3"/);
+
   await page.click('#clear');
   await page.setInputFiles('#file-input',{name:'notes.txt',mimeType:'text/plain',buffer:Buffer.from('Uno\nDos\nTres')});
   await page.click('[data-format=docx]');

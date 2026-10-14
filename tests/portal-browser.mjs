@@ -41,6 +41,12 @@ try {
       const metrics=await page.evaluate(()=>({width:document.documentElement.scrollWidth,inner:innerWidth,bg:getComputedStyle(document.body).backgroundColor}));
       assert(metrics.width<=metrics.inner+1,`${route||'Toolchain'} overflows at ${viewport.width}: ${metrics.width}`);
       assert.equal(metrics.bg,'rgb(16, 18, 20)',`${route}: design system not loaded`);
+      if(route==='drop'){
+        await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
+        const home=page.getByRole('link',{name:'Volver a Reynoso Toolchain',exact:true});
+        await home.click();await page.waitForURL(base+'/');
+        await page.goto(base+'/drop/');await page.locator('#workspace-open').waitFor();
+      }
     }
     if(['','drop','transcribe','shot','convert','cutout','audio','snippets','jot','context','diff'].includes(route)){
       await page.setViewportSize({width:1440,height:960});

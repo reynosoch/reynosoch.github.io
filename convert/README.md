@@ -117,3 +117,11 @@ Los archivos no se suben a Reynoso Toolchain ni se guardan en GitHub. Las operac
 - `tests/convert-browser.mjs`: regresión real del conversor, PDF Studio e iconografía.
 
 Convert se conserva fuera del generador de placeholders mediante `standaloneReady` en `scripts/generate-toolchain.mjs` y `scripts/build-site.mjs`; así `npm run generate` no pisa la implementación real mientras el catálogo histórico conserva la entrada `convert`.
+
+## Texto a columnas
+
+TXT y LOG detectan tablas separadas por `|`, tabuladores, punto y coma o comas cuando todas las filas tienen el mismo ancho. CSV también reconoce esos separadores. Admite campos entre comillas y conserva las comas dentro de las descripciones al usar `|`. No divide texto común por espacios.
+
+El XLSX incluye encabezado fijo y contrastante, filtros, anchos según el contenido y filas alternadas. El resultado muestra filas y columnas. Códigos con ceros iniciales, números largos, fechas y fórmulas aparentes se conservan como texto; cantidades simples quedan como números.
+
+También repara XLSX con tablas delimitadas en una sola columna al elegir XLSX como salida. Utiliza la primera hoja; no reconstruye diseños ni hojas adicionales. No divide automáticamente tablas de ancho irregular para evitar desplazar datos.

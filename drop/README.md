@@ -2,7 +2,7 @@
 
 [Abrir Drop](https://reynosoch.github.io/drop/) · [Centro de herramientas](https://reynosoch.github.io/) · [Repositorio principal](https://github.com/reynosoch/reynosoch.github.io)
 
-Drop forma parte de **Reynoso Toolchain**. Su pestaña se titula **Drop · Reynoso Toolchain** y el header tiene un enlace **← Toolchain** que vuelve a la portada. v1.7.2 conserva el motor y agrega este header Liquid Glass; su CSS se copia desde `shared/toolchain-nav.css` a `drop/toolchain-nav.css` mediante `npm run generate` en la raíz y se incluye en la caché PWA para funcionar offline. El worker sigue limitado a `/drop/` y conserva sesiones, QR y protocolo.
+Drop forma parte de **Reynoso Toolchain**. Su pestaña se titula **Drop · Reynoso Toolchain** y el header tiene un enlace **Volver a Toolchain** que vuelve a la portada. v1.7.2 conserva el motor y agrega este header Liquid Glass; su CSS se copia desde `shared/toolchain-nav.css` a `drop/toolchain-nav.css` mediante `npm run generate` en la raíz y se incluye en la caché PWA para funcionar offline. El worker sigue limitado a `/drop/` y conserva sesiones, QR y protocolo.
 
 Pasa texto, código, capturas y archivos entre dos dispositivos mediante WebRTC. Funciona como sitio estático en **GitHub Pages**, sin Supabase, sin cuentas y sin base de datos remota. La versión 1.7 hace la conexión desplegable (se minimiza sola al conectar), añade un **escáner de QR con la cámara**, unifica el envío de texto/fotos/archivos en una sola sección y muestra qué dispositivo envió cada elemento y a qué hora.
 
@@ -72,3 +72,5 @@ Origen: `reynosoch/reynoso-drop`, commit `d74c31e`. Ese repositorio se conserva 
 Herramienta del repositorio central `reynosoch/reynosoch.github.io`, carpeta `drop/`, independiente del reconciliador Visteon. Leer también el README de la raíz. Cambios directos en `main`, sin PR cuando el usuario lo pida así. Mantener transferencia dispositivo-a-dispositivo, sin Supabase ni almacenamiento remoto de contenido. No eliminar carga de archivos, QR, recepción automática/manual, SHA-256, límites de memoria ni compatibilidad con iPad. No eliminar cachés de otras herramientas.
 
 v1.6 cambia deliberadamente una decisión anterior: la **sesión sí se conserva localmente** para sobrevivir F5/cortes, mientras que la bandeja y los archivos recibidos continúan solo en memoria. `localStorage` se usa para metadatos pequeños y preferencias; no se usa una base de datos remota. Enter envía texto y Shift+Enter crea salto de línea. La PWA es instalable en iPad y cachea únicamente recursos estáticos de la app.
+
+La cabecera permanece visible al desplazarse y ofrece **Volver a Toolchain** en la misma pestaña, sin depender del selector ni de la conexión de la sala. Hay otro acceso en el pie de página.
