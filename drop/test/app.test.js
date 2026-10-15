@@ -254,3 +254,8 @@ test('BFCache no cierra la sala; volver comprueba el canal y cierre explícito s
   t.windowEvents.get('pageshow')();assert.equal(peer.destroyed,false);
   t.element('leave-room').fire('click');assert.equal(peer.destroyed,true);t.windowEvents.get('focus')();assert.equal(t.api.active,false);
 });
+test('un fallo persistente del broker no interrumpe un canal de datos sano', () => {
+  const t=setup();t.element('create-room').fire('click');const peer=t.peers[0];peer.emit('open');const conn=new t.Connection({device:'iPhone'});peer.emit('connection',conn);conn.establish();
+  peer.disconnected=true;peer.reconnect=()=>{throw Error('broker sin red');};peer.emit('disconnected');
+  t.expire(12000);assert.equal(t.api.state.ready,true);assert.equal(peer.destroyed,false);assert.equal(conn.open,true);
+});

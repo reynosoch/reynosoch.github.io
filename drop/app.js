@@ -47,10 +47,17 @@ function resumeConnection() {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; recover('Volviendo a conectar.'); return; }
   if (!peer || peer.destroyed) { recover(); return; }
   if (peer.disconnected) {
-    try { peer.reconnect(); } catch { recover('Restableciendo el servicio de salas.'); return; }
+    try { peer.reconnect(); } catch {
+      if (!ready || !connection?.open) { recover('Restableciendo el servicio de salas.'); return; }
+      // The broker is not the payload channel. Do not tear down a working transfer.
+    }
     clearTimeout(signalTimer);
     const instance = peer;
-    signalTimer = setTimeout(() => { if (peer === instance && peer.disconnected) recover('El servicio de salas no respondió.'); }, 12000);
+    signalTimer = setTimeout(() => {
+      if (peer !== instance || !peer.disconnected) return;
+      if (ready && connection?.open) resumeConnection();
+      else recover('El servicio de salas no respondió.');
+    }, 12000);
   }
   if (ready && !connection?.open) { recover(); return; }
   // Give a suspended phone time to answer a fresh probe; never trust an old green badge.
