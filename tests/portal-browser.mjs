@@ -44,7 +44,9 @@ try {
       if(route==='drop'){
         await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));
         const home=page.getByRole('link',{name:'Volver a Reynoso Toolchain',exact:true});
-        await home.click();await page.waitForURL(base+'/');
+        await home.click();await page.locator('.drop-catalog-layer:not([hidden])').waitFor();
+        assert.equal(await page.locator('.drop-catalog-layer iframe').getAttribute('src'),base+'/');
+        await page.locator('#drop-back').click();
         await page.goto(base+'/drop/');await page.locator('#workspace-open').waitFor();
       }
     }

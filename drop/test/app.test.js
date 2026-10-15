@@ -13,7 +13,7 @@ import {peerRoundTrip} from './helpers/peer-codec.js';
 
 // Exercise real application event handlers without a network or browser.
 function setup({hash = '', clipboard = {}, autoReceive = true, userAgent = 'Windows', platform = 'Win32', maxTouchPoints = 0} = {}) {
-  const elements = new Map(), timers = new Map(), peers = [], createdUrls = [], revokedUrls = [], windowEvents = new Map(); let timerId = 0;
+  const elements = new Map(), timers = new Map(), peers = [], createdUrls = [], revokedUrls = [], windowEvents = new Map(); let timerId = 0; let clock = Date.now();
   function node(tag = '') {
     return {tagName:tag.toUpperCase(),isConnected:true,focus(){},setSelectionRange(start,end){this.selectionStart=start;this.selectionEnd=end;},value:'',textContent:'',hidden:false,disabled:false,children:[],listeners:new Map(),replaceChildren(...children){this.children=[];this.append(...children);},append(...children){for(const child of children) child.parentNode=this;this.children.push(...children);},prepend(...children){for(const child of children) child.parentNode=this;this.children.unshift(...children);},remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(child=>child!==this);this.isConnected=false;},querySelector(){return this.children.find(child=>child.className==='item-meta')?.children[0];},addEventListener(event,fn){this.listeners.set(event,fn);},fire(event){return this.listeners.get(event)?.({target:this});},classList:{add(){},remove(){}}};
   }
@@ -28,20 +28,21 @@ function setup({hash = '', clipboard = {}, autoReceive = true, userAgent = 'Wind
     establish() { this.open = true; this.emit('open'); }
   }
   class Peer extends EventEmitter {
-    constructor(id) { super(); this.id = id; this.destroyed = false; peers.push(this); }
+    constructor(id) { super(); this.id = id; this.destroyed = false; this.disconnected = false; peers.push(this); }
     connect(id, options) { this.target = id; this.options = options; return this.connection = new Connection(); }
+    reconnect() { this.disconnected = false; this.emit('open'); }
     destroy() { this.destroyed = true; }
   }
   const timersAPI = {setTimeout(fn, ms) { const id = ++timerId; timers.set(id,{fn,ms}); return id; },clearTimeout(id) { timers.delete(id); }};
   class TestURL extends URL { static createObjectURL(){const url=`blob:test-${createdUrls.length}`;createdUrls.push(url);return url;} static revokeObjectURL(url){revokedUrls.push(url);} }
-  const context = {...protocol, ...fileTools, ...clipboardTools, ...qrTools, ...deviceTools, ...scanTools, ...timersAPI, crypto, TextEncoder, URL:TestURL, Blob, File, Event,
+  const context = {...protocol, ...fileTools, ...clipboardTools, ...qrTools, ...deviceTools, ...scanTools, ...timersAPI, crypto, Date:class extends Date { static now(){return clock;} }, TextEncoder, URL:TestURL, Blob, File, Event,
     document:{getElementById:element,createElement:node,body:{dataset:{}},dispatchEvent:()=>{}}, navigator:{userAgent,platform,maxTouchPoints,onLine:true,clipboard},
     window:{Peer,RTCPeerConnection(){},addEventListener(event,fn){windowEvents.set(event,fn);}}, history:{replaceState(){}}, location:{href:`https://reynosoch.github.io/drop/${hash}`,pathname:'/drop/',search:'',hash}, confirm:()=>true};
   element('auto-receive').checked=autoReceive;
   const source = readFileSync(new URL('../app.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/gm,'');
   runInNewContext(source, context);
   function expire(ms) { for (const [id,timer] of [...timers]) if (timer.ms === ms && timers.has(id)) { timers.delete(id); timer.fn(); } }
-  return {element,peers,Connection,expire,createdUrls,revokedUrls,windowEvents};
+  return {element,peers,Connection,expire,createdUrls,revokedUrls,windowEvents,api:context.window.dropConnection,advance(ms){clock+=ms;}};
 }
 test('permite cargar documentos antes de conectar y limpiar la selección sin enviarla', () => {
   const {element,peers}=setup();
@@ -227,4 +228,29 @@ test('lo recibido muestra el dispositivo que lo envió y la hora, y el envío un
   await element('send-text').fire('click');
   assert.deepEqual(conn.messages.filter(m=>m.type==='text'||m.type==='file-offer').map(m=>m.type),['text','file-offer']);
   assert.equal(element('text-input').value,''); assert.equal(element('file-selection').hidden,true);
+});
+
+test('reconecta invitado sin cambiar código y conserva archivos pendientes', () => {
+  const t=setup({hash:'#0012'});t.expire(300);const first=t.peers[0];first.emit('open');first.connection.establish();first.connection.emit('data',{type:'approved',heartbeat:1,device:'iPhone'});
+  t.element('file-input').files=[new File(['bytes'],'pendiente.txt')];t.element('file-input').fire('change');
+  first.connection.close();assert.equal(t.api.state.room,'0012');assert.equal(t.api.state.recovering,true);
+  t.expire(1000);assert.equal(t.peers.length,2);t.peers[1].emit('open');assert.equal(t.peers[1].target,'reynoso-drop-0012');
+  assert.match(t.element('queue-summary').textContent,/1 archivo/);
+  t.element('leave-room').fire('click');t.expire(2000);assert.equal(t.api.active,false);assert.equal(t.peers.length,2);
+});
+test('repara señalización sin destruir un canal saludable ni sustituirlo', () => {
+  const t=setup();t.element('create-room').fire('click');const peer=t.peers[0];peer.emit('open');const conn=new t.Connection({device:'iPad'});peer.emit('connection',conn);conn.establish();
+  peer.disconnected=true;peer.emit('disconnected');assert.equal(peer.destroyed,false);assert.equal(t.api.state.ready,true);assert.equal(t.peers.length,1);
+  t.element('text-input').value='Sigue conectado';t.element('text-input').fire('input');t.element('send-text').fire('click');assert(conn.messages.some(m=>m.type==='text'));
+});
+test('canal zombi detectado por latido sin recargar y manteniendo sala', () => {
+  const t=setup({hash:'#0012'});t.expire(300);const peer=t.peers[0];peer.emit('open');peer.connection.establish();peer.connection.emit('data',{type:'approved',heartbeat:1,device:'Laptop'});
+  assert(peer.connection.messages.some(m=>m.type==='ping'));
+  t.advance(30000);t.expire(5000);assert.equal(t.api.state.recovering,true);assert.equal(t.api.state.room,'0012');
+});
+test('BFCache no cierra la sala; volver comprueba el canal y cierre explícito sí lo apaga', () => {
+  const t=setup();t.element('create-room').fire('click');const peer=t.peers[0];peer.emit('open');
+  t.windowEvents.get('pagehide')({persisted:true});assert.equal(peer.destroyed,false);assert.equal(t.api.active,true);
+  t.windowEvents.get('pageshow')();assert.equal(peer.destroyed,false);
+  t.element('leave-room').fire('click');assert.equal(peer.destroyed,true);t.windowEvents.get('focus')();assert.equal(t.api.active,false);
 });

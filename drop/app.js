@@ -9,6 +9,56 @@ let peer = null, connection = null, incoming = null, ready = false, room = '', h
 let connectTimer, signalTimer, toastTimer, outgoingId = null, busy = false, usedMemory = 0;
 let autoJoinTimer, roomExpiryTimer, reconnectTimer, remoteName = '', remoteKind = '', roomName = '', stopScan = null;
 const ROOM_TTL = 10 * 60 * 1000;
+let desiredSession = null, recoveryAttempt = 0, healthTimer, lastSeen = 0, healthSupported = false, lastProbe = 0;
+function stopHealth() { clearTimeout(healthTimer); healthTimer = null; }
+function healthTick() {
+  stopHealth();
+  if (!room) return;
+  if (ready && healthSupported && connection?.open) {
+    if (lastProbe && Date.now() - lastSeen > 25000 && Date.now() - lastProbe > 10000) { recover('El enlace dejó de responder.'); return; }
+    try { connection.send({type:'ping'}); if (!lastProbe) lastProbe = Date.now(); } catch { recover('El canal se interrumpió.'); return; }
+  }
+  healthTimer = setTimeout(healthTick, 5000);
+}
+function recover(reason = 'Restableciendo el enlace.') {
+  if (!desiredSession || reconnectTimer) return;
+  stopHealth(); clearTimeout(connectTimer); clearTimeout(signalTimer); clearTimeout(roomExpiryTimer);
+  ready = false; healthSupported = false;
+  const oldConnection = connection, oldIncoming = incoming, oldPeer = peer;
+  connection = incoming = peer = null;
+  oldConnection?.close(); oldIncoming?.close(); oldPeer?.destroy();
+  for (const key of [...pending.keys()]) ack(key, null, 'Conexión interrumpida. El contenido pendiente se conserva para reenviarlo.');
+  for (const id of [...receivers.keys()]) dropReceiver(id);
+  status(navigator.onLine ? 'Reconectando…' : 'Sin red · sesión guardada', 'waiting'); controls(); renderDevices();
+  $('connection-hint').textContent = `${reason} Se conserva la sala ${formatCode(room)}. No es necesario recargar.`;
+  $('session-error').hidden = true;
+  const delay = Math.min(15000, 1000 * 2 ** Math.min(recoveryAttempt++, 4));
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (!desiredSession) return;
+    if (!navigator.onLine) { recover('Esperando conexión de red.'); return; }
+    start(desiredSession.host, desiredSession.code, 0, true);
+  }, delay);
+}
+function resumeConnection() {
+  networkInfo();
+  if (!desiredSession) return;
+  if (!navigator.onLine) { status('Sin red · sesión guardada', 'waiting'); return; }
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; recover('Volviendo a conectar.'); return; }
+  if (!peer || peer.destroyed) { recover(); return; }
+  if (peer.disconnected) {
+    try { peer.reconnect(); } catch { recover('Restableciendo el servicio de salas.'); return; }
+    clearTimeout(signalTimer);
+    const instance = peer;
+    signalTimer = setTimeout(() => { if (peer === instance && peer.disconnected) recover('El servicio de salas no respondió.'); }, 12000);
+  }
+  if (ready && !connection?.open) { recover(); return; }
+  // Give a suspended phone time to answer a fresh probe; never trust an old green badge.
+  if (ready && healthSupported) status('Comprobando enlace…', 'waiting');
+  lastSeen = Date.now(); lastProbe = 0; healthTick();
+}
+
+const watchedConnections = new WeakSet();
 const pending = new Map(), receivers = new Map(), urls = new Set();
 let queuedFiles = [], queueGeneration = 0;
 const queueUrls = new Set(), cardUrls = new Map();
@@ -16,6 +66,7 @@ const localDevice = detectDevice(navigator), device = localDevice.label;
 let remoteType = '';
 $('device-name').value = device;
 function renderDevices() {
+  document.body.dataset.dropSession = room ? 'active' : 'idle';
   $('local-device-name').textContent = roomName || deviceName($('device-name').value, device);
   $('local-device-detail').textContent = `${device} · Este dispositivo`;
   $('local-device-icon').innerHTML = deviceIcon(localDevice.type);
@@ -161,10 +212,12 @@ function dropReceiver(id, message) {
   usedMemory -= entry.offer.size; receivers.delete(id); entry.card.remove();
   if (message) toast(message); updateInbox(); controls();
 }
-function reset() {
+function reset(preserveIntent = false) {
+  stopHealth(); if (!preserveIntent) { desiredSession = null; recoveryAttempt = 0; }
+  healthSupported = false; lastProbe = 0;
   ready = false; room = ''; host = false;
   remoteName = remoteKind = remoteType = roomName = '';
-  clearTimeout(autoJoinTimer); clearTimeout(roomExpiryTimer); clearTimeout(reconnectTimer);
+  clearTimeout(autoJoinTimer); clearTimeout(roomExpiryTimer); clearTimeout(reconnectTimer); reconnectTimer = null;
   clearTimeout(connectTimer); clearTimeout(signalTimer);
   for (const key of [...pending.keys()]) ack(key, null, 'La sala se cerró');
   for (const id of [...receivers.keys()]) dropReceiver(id);
@@ -187,19 +240,14 @@ function disconnected(conn) {
     for (const id of [...receivers.keys()]) dropReceiver(id);
     status('Esperando dispositivo', 'waiting'); controls(); renderDevices();
     $('connection-hint').textContent = 'El dispositivo se desconectó. Intentará volver automáticamente mientras ambas páginas sigan abiertas. También puedes unir otra pantalla con estos 4 números o el QR.';
-    clearTimeout(roomExpiryTimer);
-    roomExpiryTimer = setTimeout(() => { if (room && host && !ready) { reset(); toast('El código venció. Crea una sala nueva.'); } }, ROOM_TTL);
+    stopHealth();
     return;
   }
-  const previousRoom = room, shouldReconnect = ready;
-  reset(); error('El otro dispositivo se desconectó. Crea una sala nueva para continuar.');
-  if (shouldReconnect) {
-    status('Reconectando…', 'waiting'); $('session-error').hidden = true;
-    reconnectTimer = setTimeout(() => start(false, previousRoom), 1500);
-  }
+  recover('El otro dispositivo se desconectó.');
 }
 function connected() {
-  clearTimeout(connectTimer); clearTimeout(roomExpiryTimer); ready = true; status('Conectado', 'connected'); renderDevices();
+  recoveryAttempt = 0; lastSeen = Date.now(); lastProbe = 0; healthTick();
+  clearTimeout(connectTimer); clearTimeout(roomExpiryTimer); ready = true; healthTick(); status('Conectado', 'connected'); renderDevices();
   $('connection-hint').textContent = 'Las dos pantallas están conectadas. Puedes enviar en ambas direcciones.';
   $('session-error').hidden = true; closeScanner(); $('session-panel').open = false; controls(); toast('Tu otra pantalla está conectada');
 }
@@ -215,24 +263,25 @@ function showRoom() {
 }
 function roomURL() { const url = new URL(location.href); url.searchParams.set('v', '1.7'); url.hash = room; return url; }
 function watchConnection(conn) {
-  const rtc = conn.peerConnection; if (!rtc?.addEventListener) return;
+  const rtc = conn.peerConnection; if (!rtc?.addEventListener || watchedConnections.has(rtc)) return; watchedConnections.add(rtc);
   const update = () => {
-    if (conn !== connection && conn !== incoming || ready) return;
-    if (rtc.iceConnectionState === 'checking') {
+    if (conn !== connection && conn !== incoming) return;
+    if (!ready && rtc.iceConnectionState === 'checking') {
       status('Abriendo canal de datos…', 'waiting');
       $('connection-hint').textContent = 'La sala respondió. Estableciendo el enlace entre las dos pantallas; no necesitas autorizar nada.';
     }
     if (rtc.iceConnectionState === 'failed') {
       disconnected(conn); conn.close();
-      error('La sala respondió, pero el canal de datos falló. La red, la VPN o el servicio de conexión pueden impedir el enlace entre dispositivos.');
+      if (host) resumeConnection();
     }
   };
-  rtc.addEventListener('iceconnectionstatechange', update); update();
+  rtc.addEventListener('iceconnectionstatechange', update); rtc.addEventListener('connectionstatechange', update); update();
 }
 function wire(conn, isIncoming) {
-  conn.on('error', () => { disconnected(conn); error('No se pudo abrir el canal entre dispositivos. No hay un permiso pendiente; revisa que ambas páginas estén abiertas.'); });
+  conn.on('error', () => disconnected(conn));
   conn.on('close', () => disconnected(conn));
   conn.on('open', () => {
+    watchConnection(conn);
     if (isIncoming) {
       if (incoming !== conn) { conn.close(); return; }
       clearTimeout(connectTimer);
@@ -240,23 +289,28 @@ function wire(conn, isIncoming) {
       remoteName = deviceName(conn.metadata?.device);
       remoteKind = deviceName(conn.metadata?.kind, 'Otro dispositivo'); remoteType = deviceType(conn.metadata?.deviceType, remoteKind);
       // Automatic room handshake; this message never requires user approval.
-      send({type:'approved',device:roomName,kind:device,deviceType:localDevice.type}); connected();
+      send({type:'approved',device:roomName,kind:device,deviceType:localDevice.type,heartbeat:1}); connected();
     } else { status('Terminando conexión…', 'waiting'); renderDevices(); }
   });
   conn.on('data', msg => {
     if (conn === incoming || conn !== connection || !msg || typeof msg !== 'object') return;
+    lastSeen = Date.now(); lastProbe = 0;
+    if (msg.type === 'ping') { try { send({type:'pong'}); } catch {} return; }
+    if (msg.type === 'pong') { if (ready) status('Conectado', 'connected'); return; }
+    if (msg.type === 'health-ready') { healthSupported = true; healthTick(); return; }
     handle(msg).catch(e => { error(e.message); if (validId(msg.id)) { try { send({ type: 'failed', id: msg.id, reason: e.message }); } catch { /* disconnected */ } dropReceiver(msg.id); } });
   });
   watchConnection(conn);
 }
 
-function start(isHost, code, collisionAttempts = 0) {
-  reset(); $('session-error').hidden = true;
-  if (!window.Peer || !window.RTCPeerConnection || !crypto.subtle) { error('Este navegador no permite WebRTC. Usa una versión reciente de Chrome, Edge o Safari mediante HTTPS.'); return; }
+function start(isHost, code, collisionAttempts = 0, isRecovery = false) {
+  reset(isRecovery); desiredSession = {host:isHost,code}; $('session-error').hidden = true;
+  if (!window.Peer || !window.RTCPeerConnection || !crypto.subtle) { reset(); error('Este navegador no permite WebRTC. Usa una versión reciente de Chrome, Edge o Safari mediante HTTPS.'); return; }
   room = code; host = isHost;
   roomName = deviceName($('device-name').value, device); renderDevices();
   $('create-room').disabled = $('join-room').disabled = true; status('Abriendo sala…', 'waiting');
   // Public broker only exchanges session metadata; payload uses encrypted WebRTC.
+  let signalingOpened = false;
   const instance = new window.Peer(isHost ? `reynoso-drop-${room}` : undefined, {
     debug: 1,
     config: {
@@ -268,16 +322,18 @@ function start(isHost, code, collisionAttempts = 0) {
     },
   });
   peer = instance;
-  signalTimer = setTimeout(() => { if (peer === instance) { reset(); error('No se pudo abrir la sala. La red o el servicio de conexión pueden no estar disponibles.'); } }, 25000);
+  signalTimer = setTimeout(() => { if (peer === instance) { recover('El servicio de salas tardó en responder.'); } }, 25000);
   instance.on('open', () => {
     if (peer !== instance) return;
-    clearTimeout(signalTimer); showRoom();
-    if (host) {
+    clearTimeout(signalTimer);
+    if (signalingOpened) { if (ready) { status('Conectado', 'connected'); renderDevices(); } else showRoom(); return; }
+    signalingOpened = true; showRoom();
+    if (host && !isRecovery) {
       roomExpiryTimer = setTimeout(() => { if (peer === instance && !ready) { reset(); toast('El código venció. Crea una sala nueva.'); } }, ROOM_TTL);
-    } else {
+    } else if (!host) {
       connection = instance.connect(`reynoso-drop-${room}`, { reliable: true, serialization: 'binary', metadata: { device:roomName, kind:device, deviceType:localDevice.type } });
       wire(connection, false);
-      connectTimer = setTimeout(() => { if (!ready && peer === instance) { reset(); error('No se abrió el canal entre las dos pantallas. No hay una autorización pendiente. Mantén ambas páginas abiertas; la red, la VPN o el servicio de conexión pueden impedir el enlace.'); } }, 30000);
+      connectTimer = setTimeout(() => { if (!ready && peer === instance) { recover('No se abrió el canal; se volverá a intentar.'); } }, 30000);
     }
   });
   instance.on('connection', conn => {
@@ -294,11 +350,12 @@ function start(isHost, code, collisionAttempts = 0) {
   });
   instance.on('error', e => {
     if (peer !== instance) return;
-    if (e.type === 'unavailable-id' && host && collisionAttempts < 4) { start(true, newRoomCode(), collisionAttempts + 1); return; }
+    if (e.type === 'unavailable-id' && host && !isRecovery && collisionAttempts < 4) { start(true, newRoomCode(), collisionAttempts + 1); return; }
     const message = e.type === 'peer-unavailable' ? 'No encontré esa sala. Comprueba el código y que la otra pantalla siga abierta.' : e.type === 'unavailable-id' ? 'Esa sala ya existe. Crea otra.' : 'No se pudo conectar. PeerJS o WebRTC pueden estar bloqueados por esta red. Consulta con TI si usas la laptop corporativa.';
-    reset(); error(message);
+    recover(message);
   });
-  instance.on('disconnected', () => { if (peer === instance && !ready) { reset(); error('Se perdió la conexión con el servicio de salas. Vuelve a crear la sala.'); } });
+  instance.on('disconnected', () => { if (peer === instance) resumeConnection(); });
+  instance.on('close', () => { if (peer === instance && desiredSession) recover('Se cerró el servicio de salas.'); });
 }
 function updateInbox() { const count = $('inbox-items').children.length; $('inbox-empty').hidden = count > 0; $('clear-inbox').disabled = count === 0; }
 function stamp(value) { return Number.isFinite(value) && Math.abs(Date.now() - value) < 86400000 ? new Date(value) : new Date(); }
@@ -359,8 +416,8 @@ function fileCard(offer) {
 }
 
 async function handle(msg) {
-  if (msg.type === 'room-closed') { reset(); toast('El otro dispositivo cerró la sala'); return; }
-  if (msg.type === 'approved' && !host) { remoteName = deviceName(msg.device); remoteKind = deviceName(msg.kind); remoteType = deviceType(msg.deviceType, remoteKind); connected(); return; }
+  if (msg.type === 'room-closed') { try { localStorage.removeItem('reynoso-drop:session-v1'); } catch {} reset(); toast('El otro dispositivo cerró la sala'); return; }
+  if (msg.type === 'approved' && !host) { remoteName = deviceName(msg.device); remoteKind = deviceName(msg.kind); remoteType = deviceType(msg.deviceType, remoteKind); healthSupported = msg.heartbeat === 1; connected(); if (healthSupported) send({type:'health-ready'}); return; }
   if (!ready) return;
   if (msg.type === 'ack' && typeof msg.key === 'string' && msg.key.length < 100) { ack(msg.key); return; }
   if (msg.type === 'failed' && validId(msg.id)) {
@@ -471,7 +528,7 @@ function scheduleJoin() {
   if (!parseCode($('room-input').value) || room || peer) return;
   autoJoinTimer = setTimeout(() => { if (!room && !peer) joinRoom(); }, 300);
 }
-$('create-room').addEventListener('click', () => start(true, newRoomCode()));
+$('create-room').addEventListener('click', () => { let resumed = false; try { resumed = /^\d{4}$/.test(localStorage.getItem('reynoso-drop:resume-host-room') || ''); } catch {} start(true, newRoomCode(), 0, resumed); });
 $('join-room').addEventListener('click', joinRoom);
 $('room-input').addEventListener('input', scheduleJoin);
 $('device-name').addEventListener('input', renderDevices);
@@ -510,10 +567,14 @@ $('clear-inbox').addEventListener('click', () => {
   if (!confirm('¿Vaciar la bandeja? Descarga primero lo que quieras conservar.')) return;
   $('inbox-items').replaceChildren(); usedMemory = 0; for (const url of urls) URL.revokeObjectURL(url); urls.clear(); cardUrls.clear(); updateInbox();
 });
-window.addEventListener('pagehide', reset);
+window.addEventListener('pagehide', event => { if (!event.persisted) reset(); });
+window.addEventListener('pageshow', resumeConnection);
+window.addEventListener('focus', resumeConnection);
+document.addEventListener?.('visibilitychange', () => { if (document.visibilityState === 'visible') resumeConnection(); });
+window.dropConnection = { reconnect: () => { if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; } recover('Revisión de conexión solicitada.'); }, resume: resumeConnection, get active() { return Boolean(desiredSession); }, get state() { return {room,ready,host,remoteName,recovering:Boolean(reconnectTimer)}; } };
 const initial = parseCode(location.hash.slice(1)); if (initial) { $('room-input').value = formatCode(initial); history.replaceState(null, '', location.pathname + location.search); scheduleJoin(); }
-window.addEventListener('online', networkInfo); window.addEventListener('offline', networkInfo);
-navigator.connection?.addEventListener('change', networkInfo);
+window.addEventListener('online', resumeConnection); window.addEventListener('offline', networkInfo);
+navigator.connection?.addEventListener('change', resumeConnection);
 countText(); renderDevices(); networkInfo(); renderQueue();
 document.body.dataset.dropReady='true';
 document.dispatchEvent(new Event('drop:ready'));

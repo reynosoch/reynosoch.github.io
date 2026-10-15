@@ -1,5 +1,16 @@
 # Reynoso Drop
 
+## Continuidad de conexión · 1.8
+
+- Al volver de otra app, recuperar red o regresar desde la caché de navegación, Drop revisa el enlace sin pedir recargar ambas pantallas.
+- Los equipos actualizados intercambian comprobaciones de actividad. Si el canal deja de responder, reconstruyen la conexión con el mismo código, con reintentos progresivos de hasta 15 segundos entre intentos.
+- La señalización se recupera sin cerrar un canal de datos que aún funciona. Una reconexión no genera otro código por una colisión transitoria.
+- **Revisar conexión** permite solicitar la recuperación manual sin recargar. **Cerrar sala** sí detiene los reintentos y elimina la sesión guardada.
+- Los archivos todavía no confirmados permanecen en la cola. Una transferencia interrumpida debe reenviarse desde el inicio; no se afirma reanudación por bytes ni se envía automáticamente para evitar duplicados.
+- **Volver a Toolchain** muestra el catálogo en la misma pestaña conservando el documento de Drop y su bandeja en memoria. La barra superior muestra la sala y permite volver. Abrir Drop desde ese catálogo reutiliza la sesión existente. El enlace conserva su destino normal al usar Ctrl/Cmd o abrir otra pestaña.
+
+**Límites reales:** cada sala enlaza dos dispositivos, no tres simultáneos. iOS puede suspender o cerrar una página al bloquear el equipo o usar otra app: ningún código web puede garantizar una conexión permanente en ese estado. Al regresar, Drop intenta recuperarla. Cambiar manualmente la dirección de la pestaña, cerrarla o recargarla destruye su documento; los archivos recibidos no se guardan tras esa destrucción. El catálogo necesita red o su propia caché. Las restricciones corporativas de WebRTC no se eluden.
+
 [Abrir Drop](https://reynosoch.github.io/drop/) · [Centro de herramientas](https://reynosoch.github.io/) · [Repositorio principal](https://github.com/reynosoch/reynosoch.github.io)
 
 Drop forma parte de **Reynoso Toolchain**. Su pestaña se titula **Drop · Reynoso Toolchain** y el header tiene un enlace **Volver a Toolchain** que vuelve a la portada. v1.7.2 conserva el motor y agrega este header Liquid Glass; su CSS se copia desde `shared/toolchain-nav.css` a `drop/toolchain-nav.css` mediante `npm run generate` en la raíz y se incluye en la caché PWA para funcionar offline. El worker sigue limitado a `/drop/` y conserva sesiones, QR y protocolo.
@@ -24,7 +35,7 @@ En Safari abre la app y usa **Compartir → Agregar a pantalla de inicio**. La P
 La app guarda en `localStorage` únicamente información pequeña de sesión: rol (host/invitado), código de sala, nombre del dispositivo, preferencia de recepción automática y un borrador de texto razonable. No existe una base de datos de servidor.
 
 - Si haces **F5**, Safari mata la pestaña o pierdes internet, la app intenta levantar la misma sala y reconectar cuando vuelve a ser posible.
-- El anfitrión intenta reutilizar el mismo código de 4 dígitos. Si ese identificador todavía está ocupado, el flujo normal de colisión puede generar uno nuevo.
+- El anfitrión intenta reutilizar el mismo código de 4 dígitos. Durante la recuperación, si ese identificador todavía está ocupado, espera y vuelve a intentar con el mismo código. Una sala nueva creada manualmente sí puede elegir otro código ante una colisión.
 - El reintento local ocurre cada pocos segundos cuando la interfaz está ociosa y hay red.
 - **Cerrar sala** borra intencionalmente la sesión guardada en ese navegador.
 - El nombre del dispositivo y la preferencia de recepción automática también se conservan localmente.

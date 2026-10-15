@@ -39,6 +39,7 @@ function persistFromUi() {
   saveSession(role, code);
 }
 function restoreSession() {
+  if (window.dropConnection?.active) { window.dropConnection.resume(); return; }
   const saved = readSession();
   if (!saved || !navigator.onLine || !idle()) return;
   const name = document.getElementById('device-name');
@@ -111,8 +112,11 @@ function boot() {
   if (qr) observer.observe(qr, { attributes: true, attributeFilter: ['hidden'] });
 
   window.addEventListener('online', () => setTimeout(restoreSession, 250));
-  retryTimer = setInterval(restoreSession, RETRY_MS);
-  window.addEventListener('pagehide', () => clearInterval(retryTimer), { once: true });
+  function startRetry() { clearInterval(retryTimer); retryTimer = setInterval(() => { if (!window.dropConnection?.active) restoreSession(); }, RETRY_MS); }
+  startRetry();
+  window.addEventListener('pagehide', () => clearInterval(retryTimer));
+  window.addEventListener('pageshow', () => { startRetry(); restoreSession(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') restoreSession(); });
   setTimeout(() => { persistFromUi(); restoreSession(); }, 50);
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./service-worker.js').catch(() => {});
