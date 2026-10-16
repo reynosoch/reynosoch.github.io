@@ -1,10 +1,10 @@
 {
   "name": "reynoso-drop",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check transport-config.js && node --check webrtc-transport.js && node --check transport-manager.js && node --check catalog-view.js && node --check app.js && node --check session.js && node --check jot-handoff.js && node --check service-worker.js && node --check protocol.js && node --check files.js && node --check clipboard.js && node --check qr.js && node --check devices.js && node --check qrscan.js && node --test test/*.test.js",
+    "check": "node --check relay-codec.js && node --check relay-transport.js && node --check transport-config.js && node --check webrtc-transport.js && node --check transport-manager.js && node --check catalog-view.js && node --check app.js && node --check session.js && node --check jot-handoff.js && node --check service-worker.js && node --check protocol.js && node --check files.js && node --check clipboard.js && node --check qr.js && node --check devices.js && node --check qrscan.js && node --test test/*.test.js",
     "build": "node scripts/build.js"
   }
 }

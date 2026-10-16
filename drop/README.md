@@ -1,6 +1,6 @@
 # Reynoso Drop
 
-## Salas con varios dispositivos · 1.9
+## Salas con varios dispositivos y ruta alternativa · 2.0
 
 Conecta tu PC personal, PC Ethernet, laptop corporativa, iPhone e iPad a **una
 misma sala**. Admite hasta **8 dispositivos**, incluido quien la crea.
@@ -11,15 +11,17 @@ misma sala**. Admite hasta **8 dispositivos**, incluido quien la crea.
 4. Envía texto, capturas o archivos. La lista indica quién está conectado.
 
 Cada enlace se recupera por separado. Salir de un invitado no cierra la sala;
-**Cerrar sala**, en el anfitrión, avisa a todos. El anfitrión coordina las entradas
-y debe permanecer abierto. No hay elección automática de reemplazo. Una recarga
+**Cerrar sala**, en el anfitrión, avisa a todos. En modo directo el anfitrión coordina las entradas y debe permanecer abierto.
+Con relay, el servicio mantiene la presencia y los invitados pueden continuar
+si el anfitrión se ausenta. Su cierre explícito cierra la sala completa. Una recarga
 intenta recuperar el código, pero la bandeja sigue siendo temporal.
 
 **Importante:** estar en la misma sala no garantiza una ruta de red entre cada
 par. Ethernet y Wi-Fi corporativos pueden estar separados por políticas de red.
-Esta primera fase usa WebRTC; aún no incluye un servidor relay WSS. Actualiza
-Drop en todos los dispositivos/PWA para tener soporte de varios participantes.
-Los clientes anteriores siguen limitados al enlace con el anfitrión.
+La fase dos añade un relay HTTPS/WSS automático cuando se despliega y configura.
+GitHub Pages sigue sin relay hasta tener una URL real; la opción integrada en
+[Render/Docker](../drop-relay/README.md) lo configura automáticamente en su propia
+instalación. Usa la misma dirección de Drop en todos los equipos. Actualiza las PWA.
 
 ## Continuidad de conexión
 
@@ -36,7 +38,7 @@ Los clientes anteriores siguen limitados al enlace con el anfitrión.
 
 Drop forma parte de **Reynoso Toolchain**. Su pestaña se titula **Drop · Reynoso Toolchain** y el header tiene un enlace **Volver a Toolchain** que vuelve a la portada. v1.7.2 conserva el motor y agrega este header Liquid Glass; su CSS se copia desde `shared/toolchain-nav.css` a `drop/toolchain-nav.css` mediante `npm run generate` en la raíz y se incluye en la caché PWA para funcionar offline. El worker sigue limitado a `/drop/` y conserva sesiones, QR y protocolo.
 
-Pasa texto, código, capturas y archivos entre hasta ocho dispositivos mediante WebRTC. Funciona como sitio estático en **GitHub Pages**, sin Supabase, sin cuentas y sin base de datos remota. La versión 1.7 hace la conexión desplegable (se minimiza sola al conectar), añade un **escáner de QR con la cámara**, unifica el envío de texto/fotos/archivos en una sola sección y muestra qué dispositivo envió cada elemento y a qué hora.
+Pasa texto, código, capturas y archivos entre hasta ocho dispositivos mediante WebRTC o el relay temporal configurado. Funciona como sitio estático en **GitHub Pages**, sin Supabase, sin cuentas y sin base de datos remota. La versión 1.7 hace la conexión desplegable (se minimiza sola al conectar), añade un **escáner de QR con la cámara**, unifica el envío de texto/fotos/archivos en una sola sección y muestra qué dispositivo envió cada elemento y a qué hora.
 
 ## Uso rápido
 
@@ -49,7 +51,7 @@ Pasa texto, código, capturas y archivos entre hasta ocho dispositivos mediante 
 
 ## iPad / PWA
 
-En Safari abre la app y usa **Compartir → Agregar a pantalla de inicio**. La PWA usa `manifest.webmanifest`, iconos propios y un service worker que guarda en caché la interfaz estática. Puede abrir el cascarón de la app sin red, pero para conectar dispositivos sigue siendo necesaria una red que permita PeerJS/WebRTC.
+En Safari abre la app y usa **Compartir → Agregar a pantalla de inicio**. La PWA usa `manifest.webmanifest`, iconos propios y un service worker que guarda en caché la interfaz estática. Puede abrir el cascarón de la app sin red, pero para conectar dispositivos sigue siendo necesaria una red que permita una de las rutas configuradas.
 
 ## Sesión persistente local
 
@@ -67,7 +69,7 @@ La bandeja de archivos recibidos y los blobs **siguen siendo temporales en memor
 
 - GitHub Pages publica únicamente el código de la app.
 - Los archivos y textos transferidos no se escriben en GitHub, Supabase ni otra base de datos.
-- PeerJS Cloud se usa para señalización. El contenido viaja por WebRTC cifrado, directo cuando es posible. TURN solo se utiliza si se configura un servicio propio válido; no hay TURN público de respaldo ni relay WSS habilitado por defecto.
+- PeerJS Cloud se usa para señalización. El contenido viaja por WebRTC cifrado, directo cuando es posible. TURN solo se utiliza si se configura un servicio propio válido; no hay TURN público de respaldo. El relay WSS requiere desplegar su servidor; no se habilita con solo publicar los archivos en Pages.
 - El código/QR permite entrar directamente a la sala. Compártelo solo con los dispositivos autorizados; no autentica personas. Los clientes actualizados crean enlaces entre miembros y el contenido va únicamente a los destinatarios elegidos.
 - La app no descubre equipos arbitrarios de la LAN, no escanea rangos IP y no puede saltarse restricciones de una VPN o red corporativa.
 - Si WebRTC, WebSocket, STUN o TURN están bloqueados, la app puede abrir pero no completar la conexión.
@@ -108,49 +110,36 @@ v1.6 cambia deliberadamente una decisión anterior: la **sesión sí se conserva
 La cabecera permanece visible al desplazarse y ofrece **Volver a Toolchain** en la misma pestaña, sin depender del selector ni de la conexión de la sala. Hay otro acceso en el pie de página.
 
 
-## Connection strategy y arquitectura
+## Conexión automática y diagnóstico
 
-`app.js` conserva la UI y el protocolo de transferencia. `transport-manager.js`
-administra la sala, lista de miembros y recuperación por enlace;
-`webrtc-transport.js` encapsula PeerJS/DataChannel. La configuración está reunida
-en `transport-config.js`; se retiraron los TURN antiguos. Señalización HTTPS/WSS
-por 443, timeout de ocho segundos y canal de doce segundos. WebRTC ya aprovecha
-rutas locales permitidas; no se escanean IPs.
+Drop prefiere el enlace directo. Con un servicio configurado, mantiene presencia
+por WSS y prueba WebRTC/ICE (incluidos TURN propios cuando se configuran). Si
+el canal falla o expira, usa el relay automáticamente, sin botones técnicos.
+Una interrupción durante un envío puede reiniciarlo con el mismo ID y conservar
+los destinatarios confirmados. Si se agotan las rutas, la cola queda disponible
+para reenvío manual. No se promete reanudación por bytes ni entrega con el
+receptor apagado: ambos dispositivos deben estar abiertos y conectados.
 
-El orden objetivo es **Direct → TURN configurado → relay WSS configurado →
-Failure**. Esta fase implementa el transporte WebRTC y deja el relay WSS para
-la siguiente fase; `relayUrl` es un campo reservado, no una capacidad activa.
-Consulta [la auditoría, diagramas, interfaz, riesgos y migración](ARCHITECTURE.md).
+El relay es RAM-only y no almacena archivos. HTTPS/WSS protege la conexión, pero
+el operador del relay puede ver el contenido en tránsito; no hay E2EE adicional.
+Sala: diez minutos sin actividad real; metadatos pendientes: dos minutos.
 
-## Diagnostics
-
-Abre **Conecta tus dispositivos → Diagnóstico de conexión**. Muestra red,
-señalización, estado de enlaces, tipos de candidatos observados e intentos
-acotados. No incluye direcciones IP, credenciales, archivos, texto ni hashes.
-La interfaz principal no pide escoger tecnología de conexión.
-
-## Deployment modes
-
-- **Personal:** GitHub Pages, mismo código, `relayUrl: null`, STUN por defecto.
-- **Office:** mismo código con señalización/ICE configurados y autorizados por
-  TI. Los TURN necesitan credenciales acotadas; no publicar secretos permanentes
-  en JavaScript. Un futuro relay WSS requiere un servicio separado y habilitar su
-  destino exacto en CSP; añadir una URL ahora no lo crea.
-
-El servidor futuro será temporal, sin DB ni historial, con RAM, TTL y límites;
-no se ha desplegado ninguno en esta entrega. Windows/IIS con WebSocket o un
-proxy HTTPS son opciones a evaluar con TI, sin asumir infraestructura.
+En **Conecta tus dispositivos → Diagnóstico de conexión** se muestran red,
+señalización, ruta activa e intentos, sin IP, credenciales, contenido ni hashes.
+Consulta [arquitectura y límites](ARCHITECTURE.md) y
+[despliegue en Render, Docker o servidor propio](../drop-relay/README.md).
 
 ## Validación y matriz manual
 
-Desde la raíz: `npm run check`, `npm run build`, `node tests/drop-browser.mjs`.
-La prueba de navegador cubre cinco contextos, envío privado y a todos, archivo
-binario con SHA-256 y descarga, salida, regreso, F5, pantallas móvil/tablet y
-handshake con host anterior. Si la política administrada del navegador bloquea
-WebRTC, `DROP_TEST_TRANSPORT=memory node tests/drop-browser.mjs` usa el adaptador
-de prueba explícito: valida UI/protocolo, **no conectividad WebRTC real**.
+Desde la raíz: `npm run check`, `npm run build`, `node tests/drop-browser.mjs` y
+`npm run check:drop:relay`. La primera suite usa RTCDataChannel real por defecto;
+`DROP_TEST_TRANSPORT=memory` selecciona explícitamente su adaptador si Chromium
+bloquea UDP. La suite de relay utiliza HTTP/WebSocket reales, cinco contextos,
+PDF de ida/vuelta, cambio de ruta a mitad de archivo, señalización caída,
+reconexión, F5 y limpieza de metadatos. Solo su enlace WebRTC inicial se simula.
 
-Queda la matriz manual en redes reales: personal Wi-Fi↔Wi-Fi, corporativa
-Wi-Fi↔Wi-Fi, Ethernet↔Wi-Fi corporativos, iPhone↔PC, iPad↔laptop, redes distintas,
-sin red/regreso y suspensión. No sustituir estas comprobaciones por los tests
-cloud. Ver [matriz y alcance](ARCHITECTURE.md#plan-de-pruebas).
+Pendiente en dispositivos/redes reales: Chrome en iPad/iPhone, Safari, Wi-Fi y
+Ethernet corporativos, universidad, casa, hotspot, cambio Wi-Fi→celular y suspensión.
+Los tests locales no prueban permisos de la red corporativa ni disponibilidad
+de una instancia pública. Una cuenta y servicio de hosting siguen siendo
+necesarios para usar relay fuera del entorno de desarrollo.

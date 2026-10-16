@@ -84,6 +84,12 @@ manager.on('connected',()=>{
   $('session-error').hidden=true;closeScanner();$('session-panel').open=false;controls();
 });
 manager.on('disconnected',peerId=>clearSessionTransfers(peerId));
+manager.on('migration',peerId=>{
+  for(const [key,task] of [...pending])if(key.startsWith(peerId+'|')){
+    clearTimeout(task.timer);pending.delete(key);
+    const error=new Error('Restableciendo conexión…');error.code='transport-changed';task.reject(error);
+  }
+});
 manager.on('notice',message=>{error(message);$('connection-hint').textContent=message;});
 manager.on('expired',()=>{reset();toast('El código venció. Crea una sala nueva.');});
 manager.on('room-closed',()=>{try{localStorage.removeItem('reynoso-drop:session-v1');}catch{}reset();toast('El anfitrión cerró la sala');});
@@ -112,7 +118,7 @@ function showRoom() {
 function roomURL() {const url=new URL(location.href);url.searchParams.set('v','1.9');url.hash=room;return url;}
 function start(isHost,code,collisionAttempts=0,isRecovery=false) {
   reset();$('session-error').hidden=true;
-  if(!window.Peer||!window.RTCPeerConnection||!crypto.subtle){error('Este navegador no permite WebRTC. Usa una versión reciente de Chrome, Edge o Safari mediante HTTPS.');return;}
+  if(!crypto.subtle||!DROP_CONFIG.relayUrl&&(!window.Peer||!window.RTCPeerConnection)){error('Este navegador no permite WebRTC. Usa una versión reciente de Chrome, Edge o Safari mediante HTTPS.');return;}
   roomName=deviceName($('device-name').value,device);
   $('create-room').disabled=$('join-room').disabled=true;
   manager.connect({host:isHost,code,device:roomName,kind:device,deviceType:localDevice.type,recovering:isRecovery});
@@ -236,7 +242,7 @@ function send(msg,peerId) {manager.send(msg,peerId);}
 function request(msg,key,timeout=30000,peerId) {
   const scoped=transferKey(peerId,key);
   return new Promise((resolve,reject)=>{
-    const timer=setTimeout(()=>{pending.delete(scoped);reject(new Error(`${targetLabel(peerId)} no respondió a tiempo`));},timeout);
+    const timer=setTimeout(()=>{if(manager.fallback(peerId))return;pending.delete(scoped);reject(new Error(`${targetLabel(peerId)} no respondió a tiempo`));},timeout);
     pending.set(scoped,{resolve,reject,timer});
     try{send(msg,peerId);}catch(e){ack(scoped,null,e.message);}
   });
@@ -329,7 +335,11 @@ async function handle(msg,peerId) {
   if (msg.type === 'file-offer') {
     if(done?.type==='file'&&validOffer(msg)&&done.hash===msg.hash&&done.size===msg.size){send({type:'ack',key:`offer:${msg.id}`},peerId);return;}
     const existing=receivers.get(key);
-    if(existing){if(existing.receiver&&existing.offer.hash===msg.hash&&existing.offer.size===msg.size)send({type:'ack',key:`offer:${msg.id}`},peerId);return;}
+    if(existing){
+      if(existing.offer.hash!==msg.hash||existing.offer.size!==msg.size)throw new Error('El archivo cambió durante la transferencia');
+      if(msg.restart&&existing.receiver){existing.receiver=new FileReceiver(existing.offer);receiverTimeout(existing);}
+      if(existing.receiver)send({type:'ack',key:`offer:${msg.id}`},peerId);return;
+    }
     if (!validOffer(msg, usedMemory) || receivers.size || busy) throw new Error('Archivo no admitido, bandeja llena o hay otro envío en curso');
     fileCard(msg,peerId); if (!$('auto-receive').checked) toast('Tienes un archivo por recibir'); return;
   }
@@ -357,6 +367,12 @@ async function handle(msg,peerId) {
     receivedPhoto(blob,entry.card,entry.offer.name).catch(() => { /* Download remains available independently of preview support. */ });
   }
 }
+async function withTransportRetry(action,peerId) {
+  for(let attempt=0;attempt<3;attempt++){
+    try{return await action(attempt);}
+    catch(error){if(error.code!=='transport-changed'||attempt===2)throw error;}
+  }
+}
 async function sendText(targets) {
   const text=$('text-input').value;
   if(!targets.length||busy||!text.trim())return false;
@@ -372,7 +388,7 @@ async function sendText(targets) {
     for(const peerId of targets){
       if(delivery.delivered.has(peerId))continue;
       if(usedMemory+new TextEncoder().encode(text).byteLength>MAX_MEMORY||$('inbox-items').children.length>=30)throw new Error('Vacía la bandeja antes de enviar más.');
-      await request({type:'text',id:delivery.id,text,sentAt:Date.now()},`text:${delivery.id}`,30000,peerId);
+      await withTransportRetry(()=>request({type:'text',id:delivery.id,text,sentAt:Date.now()},`text:${delivery.id}`,30000,peerId),peerId);
       delivery.delivered.add(peerId);textCard(text,true,undefined,peerId);
     }
     if($('text-input').value===text){$('text-input').value='';countText();}textDelivery=null;toast('Texto entregado');
@@ -396,7 +412,8 @@ async function sendFiles(files,targets) {
         if(delivery.delivered.has(peerId))continue;
         if(outgoingId!==id)throw new Error('Envío cancelado');
         sendingTarget=peerId;$('progress-label').textContent=`Preparando recepción en ${targetLabel(peerId)}…`;
-        await request({type:'file-offer',id,name:safeName(file.name),size:file.size,hash,sentAt:Date.now()},`offer:${id}`,95000,peerId);
+        await withTransportRetry(async attempt=>{
+        await request({type:'file-offer',id,name:safeName(file.name),size:file.size,hash,sentAt:Date.now(),restart:attempt>0},`offer:${id}`,95000,peerId);
         let index=0;
         for(let offset=0;offset<file.size;offset+=CHUNK_SIZE){
           const bytes=await file.slice(offset,offset+CHUNK_SIZE).arrayBuffer();
@@ -406,7 +423,8 @@ async function sendFiles(files,targets) {
           $('progress-bar').value=percent;$('progress-label').textContent=`${targetLabel(peerId)} · ${percent}% · ${sizeLabel(file.size)}`;
         }
         $('progress-label').textContent=`Verificando integridad en ${targetLabel(peerId)}…`;
-        await request({type:'file-end',id},`end:${id}`,60000,peerId);delivery.delivered.add(peerId);
+        await request({type:'file-end',id},`end:${id}`,60000,peerId);
+        },peerId);delivery.delivered.add(peerId);
       }
       const index=queuedFiles.indexOf(file);if(index!==-1)queuedFiles.splice(index,1);
       renderQueue();controls();toast(`${safeName(file.name)} entregado`);
