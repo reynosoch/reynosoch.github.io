@@ -35,7 +35,7 @@ window.__receive=async msg=>{const peer=window.__currentPeer;if(peer.destroyed)r
 const registry=new Map();let browser;
 try{
   browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--allow-loopback-in-peer-connection','--disable-features=WebRtcHideLocalIpsWithMdns','--force-webrtc-ip-handling-policy=default_public_and_private_interfaces'],...process.env.BROWSER_EXECUTABLE_PATH?{executablePath:process.env.BROWSER_EXECUTABLE_PATH}:{} });
-  const contexts=await Promise.all([browser.newContext({serviceWorkers:'block',viewport:{width:390,height:844}}),browser.newContext({serviceWorkers:'block'})]);
+  const contexts=await Promise.all([...Array.from({length:5},(_,i)=>browser.newContext({serviceWorkers:'block',viewport:i===3?{width:390,height:844}:i===4?{width:820,height:1180}:{width:1366,height:900},hasTouch:i>2}))]);
   for(const context of contexts){
     await context.exposeBinding('__signal',({page},msg)=>{
       if(msg.type==='register'){registry.set(msg.from,{page,token:msg.token});return true;}
@@ -46,11 +46,12 @@ try{
     await context.route('**/vendor/peerjs.min.js',route=>route.fulfill({contentType:'text/javascript',body:adapter}));
   }
   const host=await contexts[0].newPage(),guest=await contexts[1].newPage();
-  await host.goto(base+'/drop/');await host.locator('#create-room').click();
+  for(const page of [host,guest])page.on('pageerror',error=>console.log('PAGE ERROR',error.stack));
+  await host.goto(base+'/drop/');await host.locator('#device-name').fill('PC personal');await host.locator('#create-room').click();
   await host.waitForFunction(()=>window.dropConnection?.state.room&&document.querySelector('#room-details').hidden===false);
   const code=await host.locator('#room-code').innerText();
   for(const page of [host,guest]) { page.on('pageerror',e=>console.log('browser error',e.message)); page.on('console',m=>{if(m.type()==='error')console.log('console',m.text())}); }
-  await guest.goto(base+'/drop/');await guest.locator('#room-input').fill(code);
+  await guest.goto(base+'/drop/');await guest.locator('#device-name').fill('PC Ethernet');await guest.locator('#room-input').fill(code);
   try {  await Promise.all([host.waitForFunction(()=>window.dropConnection?.state.ready),guest.waitForFunction(()=>window.dropConnection?.state.ready)]);}catch(error){for(const page of [host,guest])console.log(await page.evaluate(()=>({state:window.dropConnection?.state,peer:window.__currentPeer?.id,links:[...window.__links.values()].map(c=>({ice:c.peerConnection.iceConnectionState,state:c.peerConnection.connectionState,local:c.peerConnection.localDescription?.type,remote:c.peerConnection.remoteDescription?.type})),error:document.querySelector('#session-error').textContent})));throw error;}
   console.log('Initial channel connected');
   const send=async(page,text)=>{await page.locator('#text-input').fill(text);await page.locator('#send-text').click();};
@@ -70,7 +71,7 @@ try{
   // Hard channel failure recovers the same room and preserves unsent files.
   await guest.locator('#file-input').setInputFiles({name:'pendiente.txt',mimeType:'text/plain',buffer:Buffer.from('Contenido sin pérdida')});
   await guest.evaluate(()=>{for(const c of window.__links.values())c.close()});
-  await guest.waitForFunction(()=>window.__peerInstances.length>1&&window.dropConnection.state.ready);
+  await guest.waitForFunction(()=>window.__links.size>1&&window.dropConnection.state.ready);
   await host.waitForFunction(()=>window.dropConnection.state.ready);
   assert.equal(await guest.locator('#room-code').textContent(),code);
   assert.match(await guest.locator('#queue-summary').innerText(),/1 archivo/);
@@ -78,5 +79,65 @@ try{
   await host.evaluate(()=>{window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}))});
   assert.equal(await host.evaluate(()=>window.dropConnection.state.ready),true);
   await send(guest,'Después de volver');await host.waitForFunction(()=>document.querySelector('#inbox-items').textContent.includes('Después de volver'));
+  // A single shared room with the user's five devices; every pair must be ready.
+  const pages=[host,guest],names=['PC personal','PC Ethernet','Laptop corpo','iPhone','iPad'];
+  for(let i=2;i<5;i++){
+    const page=await contexts[i].newPage();pages.push(page);
+    page.on('pageerror',error=>{throw error;});
+    await page.goto(base+'/drop/');await page.locator('#device-name').fill(names[i]);await page.locator('#room-input').fill(code);
+    await page.waitForFunction(()=>window.dropConnection.state.ready);
+  }
+  console.log('Five devices joined');
+  for(const page of pages){
+    await page.waitForFunction(()=>window.dropConnection.state.members.length===5&&window.dropConnection.state.members.every(m=>m.connected));
+    assert.equal(await page.locator('#device-count').textContent(),'5 dispositivos');
+  }
+  const leave=async page=>{await page.locator('#session-panel').evaluate(el=>{el.open=true;});await page.click('#leave-room');};
+  const localId=page=>page.evaluate(()=>window.dropConnection.state.members.find(m=>m.local).id);
+  await pages[3].selectOption('#recipient',await localId(pages[4]));await send(pages[3],'iPhone → iPad privado');
+  await pages[4].waitForFunction(()=>document.querySelector('#inbox-items').textContent.includes('iPhone → iPad privado'));
+  for(const page of pages.slice(0,3))assert(!(await page.locator('#inbox-items').innerText()).includes('iPhone → iPad privado'));
+  const payload=Buffer.alloc(128*1024+19,67);payload.set([137,80,78,71,13,10,26,10]);
+  await pages[2].selectOption('#recipient',await localId(pages[3]));
+  await pages[2].locator('#file-input').setInputFiles({name:'captura-compartida.png',mimeType:'image/png',buffer:payload});
+  await pages[2].click('#send-text');await pages[3].waitForFunction(()=>document.querySelector('#inbox-items').textContent.includes('Integridad verificada'));
+  const downloading=pages[3].waitForEvent('download');await pages[3].locator('#inbox-items .item').filter({hasText:'captura-compartida.png'}).getByRole('button',{name:'Descargar',exact:true}).click();
+  assert.deepEqual(await readFile(await(await downloading).path()),payload);
+  await host.selectOption('#recipient','all');await send(host,'Mensaje para los cinco');
+  for(const page of pages.slice(1))await page.waitForFunction(()=>document.querySelector('#inbox-items').textContent.includes('Mensaje para los cinco'));
+  console.log('Private text, file download and broadcast passed');
+  // One guest leaves. The others keep the same peer instances and still transfer.
+  await leave(pages[3]);
+  for(const page of [host,guest,pages[2],pages[4]])await page.waitForFunction(()=>window.dropConnection.state.members.length===4);
+  assert.equal(await host.evaluate(()=>window.__peerInstances.length),1);
+  await pages[2].selectOption('#recipient',await localId(pages[4]));await send(pages[2],'La sala continúa sin iPhone');
+  await pages[4].waitForFunction(()=>document.querySelector('#inbox-items').textContent.includes('La sala continúa sin iPhone'));
+  await pages[3].locator('#room-input').fill(code);
+  for(const page of pages)await page.waitForFunction(()=>window.dropConnection.state.members.length===5&&window.dropConnection.state.members.every(m=>m.connected));
+  await pages[4].reload();
+  for(const page of pages)await page.waitForFunction(()=>window.dropConnection.state.members.length===5&&window.dropConnection.state.members.every(m=>m.connected));
+  for(const page of [pages[3],pages[4]]){
+    await page.locator('#session-panel').evaluate(el=>{el.open=true;});
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile/tablet overflow with five devices');
+  }
+  const details=JSON.stringify(await host.evaluate(()=>window.dropConnection.diagnostics()));assert(!details.includes('Mensaje para los cinco'));
+  // Updated guest can still join an old host's one-link handshake.
+  const legacyContext=await browser.newContext({serviceWorkers:'block'});
+  await legacyContext.exposeBinding('__signal',({page},msg)=>{if(msg.type==='register'){registry.set(msg.from,{page,token:msg.token});return true;}if(msg.type==='destroy'){if(registry.get(msg.from)?.token===msg.token)registry.delete(msg.from);return true;}const target=registry.get(msg.to);if(!target)return false;target.page.evaluate(msg=>window.__receive(msg),msg).catch(()=>{});return true;});
+  await legacyContext.route('**/vendor/peerjs.min.js',route=>route.fulfill({contentType:'text/javascript',body:adapter}));
+  const legacy=await legacyContext.newPage();await legacy.goto(base+'/drop/');
+  await legacy.evaluate(()=>{window.legacyPeer=new Peer('reynoso-drop-9876');window.legacyPeer.on('connection',conn=>conn.on('open',()=>conn.send({type:'approved',device:'Host anterior',kind:'PC',heartbeat:1})));});
+  await leave(pages[3]);await pages[3].locator('#room-input').fill('9876');
+  await pages[3].waitForFunction(()=>window.dropConnection.state.ready);assert.equal(await pages[3].locator('#device-count').textContent(),'2 dispositivos');
+  await leave(pages[3]);await legacy.evaluate(()=>window.legacyPeer.destroy());await legacy.close();
+  await leave(host);
+  for(const page of [guest,pages[2],pages[4]])await page.waitForFunction(()=>!window.dropConnection.active);
+  const offlineContext=await browser.newContext(),offlinePage=await offlineContext.newPage();
+  const offlineErrors=[];offlinePage.on('pageerror',error=>offlineErrors.push(error.message));
+  await offlinePage.goto(base+'/drop/');await offlinePage.evaluate(()=>navigator.serviceWorker.ready);await offlinePage.reload();
+  await offlineContext.setOffline(true);await offlinePage.reload();await offlinePage.waitForFunction(()=>document.body.dataset.dropReady==='true');
+  assert.equal(await offlinePage.title(),'Drop · Reynoso Toolchain');assert.deepEqual(offlineErrors,[]);await offlineContext.close();
+  console.log('PWA: complete transport modules load offline from the scoped cache.');
+  console.log('Five devices: mesh, private text, binary file/hash/download, broadcast, isolated leave, rejoin, reload, mobile/tablet, old host and room closure passed.');
   console.log(`Drop (${memory?'injected transport':'real RTCDataChannel'}): text/file, catalog continuity, signaling recovery, channel reconnect, same room, queued files and BFCache passed.`);
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

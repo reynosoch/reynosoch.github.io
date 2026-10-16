@@ -9,13 +9,15 @@ import * as clipboardTools from '../clipboard.js';
 import * as qrTools from '../qr.js';
 import * as deviceTools from '../devices.js';
 import * as scanTools from '../qrscan.js';
+import {DROP_CONFIG} from '../transport-config.js';
+import {TransportManager} from '../transport-manager.js';
 import {peerRoundTrip} from './helpers/peer-codec.js';
 
 // Exercise real application event handlers without a network or browser.
 function setup({hash = '', clipboard = {}, autoReceive = true, userAgent = 'Windows', platform = 'Win32', maxTouchPoints = 0} = {}) {
   const elements = new Map(), timers = new Map(), peers = [], createdUrls = [], revokedUrls = [], windowEvents = new Map(); let timerId = 0; let clock = Date.now();
   function node(tag = '') {
-    return {tagName:tag.toUpperCase(),isConnected:true,focus(){},setSelectionRange(start,end){this.selectionStart=start;this.selectionEnd=end;},value:'',textContent:'',hidden:false,disabled:false,children:[],listeners:new Map(),replaceChildren(...children){this.children=[];this.append(...children);},append(...children){for(const child of children) child.parentNode=this;this.children.push(...children);},prepend(...children){for(const child of children) child.parentNode=this;this.children.unshift(...children);},remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(child=>child!==this);this.isConnected=false;},querySelector(){return this.children.find(child=>child.className==='item-meta')?.children[0];},addEventListener(event,fn){this.listeners.set(event,fn);},fire(event){return this.listeners.get(event)?.({target:this});},classList:{add(){},remove(){}}};
+    return {setAttribute(){},tagName:tag.toUpperCase(),isConnected:true,focus(){},setSelectionRange(start,end){this.selectionStart=start;this.selectionEnd=end;},value:'',textContent:'',hidden:false,disabled:false,children:[],listeners:new Map(),replaceChildren(...children){this.children=[];this.append(...children);},append(...children){for(const child of children) child.parentNode=this;this.children.push(...children);},prepend(...children){for(const child of children) child.parentNode=this;this.children.unshift(...children);},remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(child=>child!==this);this.isConnected=false;},querySelector(){return this.children.find(child=>child.className==='item-meta')?.children[0];},addEventListener(event,fn){this.listeners.set(event,fn);},fire(event){return this.listeners.get(event)?.({target:this});},classList:{add(){},remove(){}}};
   }
   function element(id) {
     if (!elements.has(id)) elements.set(id,node());
@@ -35,7 +37,7 @@ function setup({hash = '', clipboard = {}, autoReceive = true, userAgent = 'Wind
   }
   const timersAPI = {setTimeout(fn, ms) { const id = ++timerId; timers.set(id,{fn,ms}); return id; },clearTimeout(id) { timers.delete(id); }};
   class TestURL extends URL { static createObjectURL(){const url=`blob:test-${createdUrls.length}`;createdUrls.push(url);return url;} static revokeObjectURL(url){revokedUrls.push(url);} }
-  const context = {...protocol, ...fileTools, ...clipboardTools, ...qrTools, ...deviceTools, ...scanTools, ...timersAPI, crypto, Date:class extends Date { static now(){return clock;} }, TextEncoder, URL:TestURL, Blob, File, Event,
+  const context = {DROP_CONFIG,TransportManager,...protocol, ...fileTools, ...clipboardTools, ...qrTools, ...deviceTools, ...scanTools, ...timersAPI, crypto, Date:class extends Date { static now(){return clock;} }, TextEncoder, URL:TestURL, Blob, File, Event,
     document:{getElementById:element,createElement:node,body:{dataset:{}},dispatchEvent:()=>{}}, navigator:{userAgent,platform,maxTouchPoints,onLine:true,clipboard},
     window:{Peer,RTCPeerConnection(){},addEventListener(event,fn){windowEvents.set(event,fn);}}, history:{replaceState(){}}, location:{href:`https://reynosoch.github.io/drop/${hash}`,pathname:'/drop/',search:'',hash}, confirm:()=>true};
   element('auto-receive').checked=autoReceive;
@@ -85,14 +87,15 @@ test('el cuarto número conecta automáticamente; tres números no abren una sal
   peers[0].emit('open'); assert.equal(peers[0].target,'reynoso-drop-0012');
   assert.equal(element('room-code').textContent,'0012'); assert.equal(element('send-text').disabled,true);
 });
-test('el primer dispositivo conecta sin permiso, admite regreso y excluye un tercer equipo', () => {
+test('los dispositivos conectan sin permiso, admiten regreso y aceptan un tercer equipo', () => {
   const {element,peers,Connection}=setup(); element('device-name').value='Laptop personal'; element('create-room').fire('click');
   const host=peers[0]; host.emit('open'); assert.match(host.id,/^reynoso-drop-\d{4}$/);
   const first=new Connection({device:'iPad',kind:'iPad'}); host.emit('connection',first);
   assert.equal(element('remote-device-status').textContent,'Conectando…');
   first.establish(); assert.equal(first.messages[0].type,'approved'); assert.equal(first.messages[0].device,'Laptop personal');
   assert.equal(element('device-count').textContent,'2 dispositivos');
-  const third=new Connection({device:'Tercero'}); host.emit('connection',third); assert.equal(third.open,false); assert.equal(third.listenerCount('open'),0);
+  const third=new Connection({device:'Tercero'}); host.emit('connection',third); third.establish(); assert.equal(third.open,true); assert.equal(element('device-count').textContent,'3 dispositivos');
+  third.close();
   first.close(); assert.equal(host.destroyed,false); assert.equal(element('remote-device').hidden,true);
   const returning=new Connection({device:'iPad',kind:'iPad'}); host.emit('connection',returning); returning.establish();
   assert.equal(returning.messages[0].type,'approved'); assert.equal(element('device-count').textContent,'2 dispositivos');
@@ -158,7 +161,7 @@ test('67 llega a la otra pantalla sin pulsar Permitir y el envío recibe confirm
 });
 test('un canal que no abre no ocupa la sala indefinidamente ni finge conexión', () => {
   const {element,peers,Connection,expire}=setup(); element('create-room').fire('click'); const host=peers[0]; host.emit('open');
-  const stalled=new Connection({device:'iPad'}); host.emit('connection',stalled); expire(30000);
+  const stalled=new Connection({device:'iPad'}); host.emit('connection',stalled); expire(DROP_CONFIG.connectionTimeout);
   assert.equal(element('device-count').textContent,'1 dispositivo'); assert.match(element('session-error').textContent,/canal de datos no abrió/);
   const next=new Connection({device:'Laptop'}); host.emit('connection',next); next.establish(); assert.equal(element('device-count').textContent,'2 dispositivos');
 });
@@ -234,9 +237,9 @@ test('reconecta invitado sin cambiar código y conserva archivos pendientes', ()
   const t=setup({hash:'#0012'});t.expire(300);const first=t.peers[0];first.emit('open');first.connection.establish();first.connection.emit('data',{type:'approved',heartbeat:1,device:'iPhone'});
   t.element('file-input').files=[new File(['bytes'],'pendiente.txt')];t.element('file-input').fire('change');
   first.connection.close();assert.equal(t.api.state.room,'0012');assert.equal(t.api.state.recovering,true);
-  t.expire(1000);assert.equal(t.peers.length,2);t.peers[1].emit('open');assert.equal(t.peers[1].target,'reynoso-drop-0012');
+  t.expire(1000);assert.equal(t.peers.length,1);assert.equal(first.target,'reynoso-drop-0012');
   assert.match(t.element('queue-summary').textContent,/1 archivo/);
-  t.element('leave-room').fire('click');t.expire(2000);assert.equal(t.api.active,false);assert.equal(t.peers.length,2);
+  t.element('leave-room').fire('click');t.expire(2000);assert.equal(t.api.active,false);assert.equal(t.peers.length,1);
 });
 test('repara señalización sin destruir un canal saludable ni sustituirlo', () => {
   const t=setup();t.element('create-room').fire('click');const peer=t.peers[0];peer.emit('open');const conn=new t.Connection({device:'iPad'});peer.emit('connection',conn);conn.establish();
@@ -258,4 +261,57 @@ test('un fallo persistente del broker no interrumpe un canal de datos sano', () 
   const t=setup();t.element('create-room').fire('click');const peer=t.peers[0];peer.emit('open');const conn=new t.Connection({device:'iPhone'});peer.emit('connection',conn);conn.establish();
   peer.disconnected=true;peer.reconnect=()=>{throw Error('broker sin red');};peer.emit('disconnected');
   t.expire(12000);assert.equal(t.api.state.ready,true);assert.equal(peer.destroyed,false);assert.equal(conn.open,true);
+});
+
+test('un ACK de otra pantalla no confirma el texto del destinatario elegido',async()=>{
+  const t=setup();t.element('create-room').fire('click');const host=t.peers[0];host.emit('open');
+  const first=new t.Connection({device:'PC Ethernet'}),second=new t.Connection({device:'iPhone'});
+  host.emit('connection',first);first.establish();host.emit('connection',second);second.establish();
+  const id=t.api.state.members.find(member=>member.name==='PC Ethernet').id;t.element('recipient').value=id;
+  let message;first.send=msg=>{first.messages.push(msg);if(msg.type==='text'){message=msg;second.emit('data',{type:'ack',key:`text:${msg.id}`});}};
+  t.element('text-input').value='Solo para PC Ethernet';t.element('text-input').fire('input');
+  const sending=t.element('send-text').fire('click');await new Promise(resolve=>setImmediate(resolve));
+  assert(message);assert.equal(t.element('text-input').value,'Solo para PC Ethernet');assert.equal(t.element('send-text').disabled,true);
+  first.emit('data',{type:'ack',key:`text:${message.id}`});await sending;
+  assert.equal(t.element('text-input').value,'');assert.equal(second.messages.some(msg=>msg.type==='text'),false);
+});
+test('texto repetido se confirma sin duplicar tarjeta y el mismo ID de otro dispositivo se aísla',async()=>{
+  const t=setup();t.element('create-room').fire('click');const host=t.peers[0];host.emit('open');
+  const a=new t.Connection({device:'iPad'}),b=new t.Connection({device:'Laptop'});host.emit('connection',a);a.establish();host.emit('connection',b);b.establish();
+  const msg={type:'text',id:protocol.newCode(),text:'Una entrega'};
+  a.emit('data',msg);a.emit('data',msg);b.emit('data',{...msg,text:'Otra entrega'});await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(t.element('inbox-items').children.length,2);assert.equal(a.messages.filter(msg=>msg.type==='ack').length,2);
+  assert.match(t.element('inbox-items').children[0].children[0].children[2].textContent,/Laptop/);
+});
+test('repetir un archivo completo tras perder su ACK no crea otra copia en la bandeja',async()=>{
+  const {sender,receiver,remote,connected}=linkedSessions();await connected;
+  const original=remote.send,sent=[];remote.send=msg=>{sent.push(msg);return original(msg);};
+  sender.element('file-input').files=[new File(['bytes verificados'],'sin-duplicado.txt')];sender.element('file-input').fire('change');
+  await sender.element('send-text').fire('click');
+  for(const message of sent.filter(msg=>['file-offer','file-chunk','file-end'].includes(msg.type)))await original(message);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(receiver.element('inbox-items').children.length,1);assert.equal(receiver.element('session-error').textContent,'');
+});
+test('al desaparecer el destinatario no envía silenciosamente a otro dispositivo',()=>{
+  const t=setup();t.element('create-room').fire('click');const host=t.peers[0];host.emit('open');
+  const a=new t.Connection({device:'PC'}),b=new t.Connection({device:'iPhone'});host.emit('connection',a);a.establish();host.emit('connection',b);b.establish();
+  t.element('recipient').value=t.api.state.members.find(member=>member.name==='PC').id;
+  a.close();t.element('text-input').value='Privado';t.element('text-input').fire('input');
+  assert.equal(t.api.state.ready,true);assert.equal(t.element('send-text').disabled,true);
+});
+
+test('un reintento de archivo a todos omite los destinatarios que ya confirmaron',async()=>{
+  const t=setup();t.element('create-room').fire('click');const host=t.peers[0];host.emit('open');
+  const a=new t.Connection({device:'PC'}),b=new t.Connection({device:'iPad'});host.emit('connection',a);a.establish();host.emit('connection',b);b.establish();
+  let rejectSecond=true;
+  for(const conn of [a,b])conn.send=msg=>{
+    conn.messages.push(msg);
+    if(conn===b&&rejectSecond&&msg.type==='file-offer'){conn.emit('data',{type:'failed',id:msg.id,reason:'Rechazado'});return;}
+    const key=msg.type==='file-offer'?`offer:${msg.id}`:msg.type==='file-chunk'?`chunk:${msg.id}:${msg.index}`:msg.type==='file-end'?`end:${msg.id}`:null;
+    if(key)conn.emit('data',{type:'ack',key});
+  };
+  t.element('recipient').value='all';t.element('file-input').files=[new File(['compartido'],'para-todos.txt')];t.element('file-input').fire('change');
+  await t.element('send-text').fire('click');assert.equal(t.element('file-selection').hidden,false);
+  rejectSecond=false;await t.element('send-text').fire('click');
+  assert.equal(t.element('file-selection').hidden,true);assert.equal(a.messages.filter(msg=>msg.type==='file-offer').length,1);assert.equal(b.messages.filter(msg=>msg.type==='file-offer').length,2);
 });

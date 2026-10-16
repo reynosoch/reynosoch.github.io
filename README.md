@@ -88,7 +88,7 @@ La portada mueve las tarjetas usadas a **Recientes**, por último uso (más reci
 
 - **[Snippets](https://reynosoch.github.io/snippets/)**: biblioteca local de 56 comandos y recetas, búsqueda por tarea, detalle, favoritos, recientes, CRUD, import/export JSON y copia protegida de destructivos. [Documentación de Snippets](snippets/README.md).
 
-- **[Drop](https://reynosoch.github.io/drop/)**: transferencia entre dispositivos de texto, código, capturas, fotos, Excel y documentos. Conserva salas de cuatro números, QR/escáner de cámara, WebRTC/PeerJS, Ctrl+V, bloques grandes como TXT, SHA-256, límites, PWA y sesión local. [Documentación de Drop](drop/README.md).
+- **[Drop](https://reynosoch.github.io/drop/)**: salas de hasta ocho dispositivos, con destinatario individual o todos los conectados, para transferir texto, código, capturas, fotos, Excel y documentos. Conserva salas de cuatro números, QR/escáner de cámara, WebRTC/PeerJS, Ctrl+V, bloques grandes como TXT, SHA-256, límites, PWA y sesión local. [Documentación de Drop](drop/README.md).
 - **[Transcribe](https://reynosoch.github.io/transcribe/)**: voz de audio/micrófono e imágenes/capturas a texto con Whisper y Tesseract. Conserva mejora para voz baja, selección de canal, procesamiento local, edición, TXT y SRT. [Documentación de Transcribe](transcribe/README.md).
 
 - **[Audio Lab](https://reynosoch.github.io/audio/)**: limpieza local de reuniones largas: Silero VAD, RNNoise, canal, nivelado, pausas con contexto, waveform/A-B, WAV y mapa de tiempos. División visual por duración con los mismos filtros en todas las partes; escucha y descarga individual, completa o selectiva en ZIP. Envío directo a Transcribe con autorización. [Documentación de Audio Lab](audio/README.md).
