@@ -1,137 +1,97 @@
-# Drop · fase 2: conexión directa y relay temporal
+# Drop · Direct y preparación del relay privado IIS
 
-## Arquitectura vigente
+## Estado actual
+
+GitHub Pages conserva `deployment-config.js` con **relayUrl: null**: WebRTC y
+hasta ocho dispositivos, sin consultar relay. Esta entrega no modifica UI, QR,
+PWA, cola, archivos, SHA-256 ni recuperación Direct.
+
+El frontend ya tiene WebRTCTransport, RelaySession, RelayTransport y
+TransportManager. Con un relay configurado, el código anterior abre presencia
+WSS **antes** de probar PeerJS. No cumple todavía el requisito nuevo de consultar
+relay solo cuando falla Direct. No conectar este frontend al backend de fase 1:
+la nueva selección y los archivos aún no están integrados con él.
+
+## Arquitectura objetivo
 
 ```mermaid
 flowchart TD
-    UI[Enviar a un dispositivo o a todos] --> E[Protocolo de transferencia, bloques y ACK]
-    E --> M[TransportManager por participante]
-    M --> D[WebRTCTransport: ruta preferida]
-    M --> R[RelayTransport: ruta alternativa]
-    D --> P[Dispositivo elegido]
-    R --> W[Una conexión WSS por dispositivo]
-    W --> S[Drop Relay: RAM, límites y TTL]
-    S --> P
+    UI[Crear sala, unirse, enviar] --> P[Motor de texto y archivos existente]
+    P --> M[TransportManager]
+    M --> D[Intentar WebRTC Direct]
+    D -->|Abre DataChannel| A[Direct sin consultar relay]
+    D -->|Falla o timeout| H[Relay configurado y GET /health]
+    H -->|Ambos clientes llegan y abren WS| R[IIS HTTPS/WSS a backend privado]
+    H -->|Sin ruta| E[Diagnóstico claro y conservar cola]
 ```
 
-La UI y los archivos usan el mismo protocolo de texto, oferta, bloques, fin y
-confirmaciones sobre ambas rutas. Se conservan salas de cuatro números, QR,
-ocho participantes, SHA-256, aceptación manual y PWA. No hay descubrimiento de
-máquinas ni escaneo LAN. Los candidatos locales de WebRTC aprovechan las rutas
-que permite la red.
+El backend vive únicamente en el proyecto separado `reynosoch/drop-relay`, cuyo
+destino debe verificarse PRIVATE antes del push. Esta fase prepara infraestructura;
+no afirma que el repositorio remoto o el servidor Windows ya estén desplegados.
+IIS termina TLS y hace reverse proxy a Node en loopback, como servicio Windows.
+No duplica frontend ni conecta redes sin una ruta autorizada.
 
-Con relay configurado, su socket registra presencia y permite encontrar los
-miembros aunque PeerJS esté bloqueado. Esa conexión de control no transporta
-archivos mientras WebRTC funciona. Los enlaces se intentan de forma directa;
-ICE prioriza candidatos directos y puede usar TURN propios configurados. La
-negociación de ICE incluye esos TURN, no se abren dos conexiones independientes
-para forzar artificialmente sus candidatos. Si el canal no abre en doce segundos,
-se activa WSS automáticamente. Sin TURN configurado no se consultan servicios
-públicos de respaldo. Una caída de un enlace activo prueba una recuperación corta
-antes del relay; los enlaces con los otros dispositivos continúan.
+## Responsabilidades y contrato
 
-Una sala del relay tiene un identificador interno de negociación adicional al
-código visible; así no colisiona con una sala antigua de PeerJS con los mismos
-cuatro números. Todos los dispositivos deben abrir **la misma instalación de
-Drop**, preferentemente mediante el enlace/QR de su anfitrión.
+- `protocol.js` y `app.js`: motor único, IDs, ACK por destinatario, nombres
+  seguros, cola, progreso, SHA-256 y deduplicación de recepción.
+- `webrtc-transport.js`: PeerJS/DataChannel y eventos por enlace.
+- `relay-transport.js`: codec/WS y enlace lógico por destinatario; fase 2
+  refactorizará su activación, sin crear otro motor de transferencias.
+- `transport-manager.js`: selección y recuperación; pendiente activación diferida,
+  health check y encuentro de ambos clientes tras fallo Direct.
+- `transport-config.js` + `deployment-config.js`: configuración central;
+  relayUrl=null continúa como valor personal predeterminado.
+- `relay-codec.js`: wire v1, uint32 big-endian + JSON UTF-8 de hasta 8192 bytes
+  + payload binario sin base64. Trama máxima: 532484 bytes.
+- `test/fixtures/relay-wire-v1.json`: bytes genéricos compartidos con el backend
+  para detectar divergencias sin copiar servidor privado al repositorio público.
 
-## Interfaz y responsabilidades
+Se conservan: archivo 50 MiB, bandeja 100 MiB, texto 512 KiB, bloques 64 KiB,
+30 elementos. Los ACK se separan por dispositivo. El cliente conserva hasta 512
+IDs completados por diez minutos; reintenta con el mismo ID sin duplicar recepción.
+No hay entrega offline ni garantía con la pestaña suspendida.
 
-- `WebRTCTransport`: `send`, `close`, `open`, `diagnostics` y callbacks de apertura,
-  datos, cierre y estado. Encapsula PeerJS/DataChannel.
-- `RelaySession`: un WebSocket para presencia y multiplexación por sala.
-- `RelayTransport`: un enlace lógico con un destinatario que comparte ese socket.
-- `TransportManager`: `connect`, `send(message, peerId)`, `resume`, `close`, eventos
-  de estado/mensaje/migración y diagnóstico. Decide la ruta sin controles técnicos
-  para el usuario.
-- `relay-codec.js`: framing binario compartido por navegador y servidor. Cabecera
-  JSON de hasta 8 KB; el texto UTF-8 y los bloques van como bytes, sin base64.
-- `app.js`: conserva el motor único de archivos y selecciona destinatarios.
-- `drop-relay/server.mjs`: HTTP de salud/UI y WebSocket acotado; no participa en el
-  procesamiento de archivos ni confirma una entrega por el receptor.
+## Plan por fases
 
-## Recuperación y duplicados
+1. **Servidor privado:** /health, /relay, dos miembros, TTL configurable, claves
+   de reconexión, limpieza, límites, tests y manual IIS/servicio Windows.
+   Reenvío básico texto/ACK para probar infraestructura; archivos deshabilitados.
+2. **Frontend:** Direct primero; si funciona, cero solicitudes relay. Tras fallo,
+   health acotado y WS desde cada cliente; exigir ambos presentes. Texto con el
+   mismo motor. Manejar orden de llegada, fallo de señalización y fallo asimétrico.
+3. **Archivos:** ofertas, chunks y ACK; metadatos limitados y limpieza tras
+   ACK/timeout/desconexión; SHA-256, progreso y recovery del motor cliente.
 
-Los ACK se indexan por dispositivo y transferencia. Una migración interrumpe
-únicamente las esperas del enlace afectado con un estado específico; el envío
-que ya estaba en curso se reintenta hasta dos veces más, con el mismo ID. Para
-archivos se reinicia desde el principio y la recepción parcial se reemplaza sin
-crear otra tarjeta ni reservar de nuevo su tamaño. No hay reanudación por bytes.
-Las recepciones completas reconocen el mismo ID y confirman sin duplicarlo:
-máximo 512 identificadores/metadatos, durante diez minutos. El emisor conserva
-los destinatarios que ya confirmaron para omitirlos al reintentar un envío a todos.
+El relay privado admite **dos**; Direct conserva **ocho**. La fase 2 debe explicar
+una sala llena sin expulsar miembros ni reducir silenciosamente el modo Direct.
+No agregar controles técnicos de modo para el usuario.
 
-El relay no guarda bloques para reenvío: las aplicaciones conservan su cola y
-sus datos en memoria. Si se agotan las rutas/reintentos, el contenido pendiente
-queda para revisión y reenvío manual. No existe una cola remota para entregar a
-un celular o PC apagado. Ambos extremos deben estar abiertos y conectados.
+## Privacidad y red
 
-Una desconexión de socket reserva la identidad durante ocho segundos para
-cambios de red; salir explícitamente libera el lugar. Las credenciales efímeras
-de reconexión se guardan en sessionStorage, nunca en la URL o en logs. F5 conserva
-la identidad de ese navegador cuando el almacenamiento está permitido; cerrar
-la pestaña o bloquear storage puede impedir recuperarla. El relay conserva los
-enlaces entre invitados mientras el anfitrión se ausenta; su cierre explícito
-sí cierra la sala completa. Una instalación directa sin relay sigue necesitando
-al anfitrión para coordinar nuevas entradas.
+Sin DB, historial, cloud storage o logs de contenido. El servidor usa RAM y
+buffers limitados; reiniciarlo pierde salas. WSS protege el tránsito, pero su
+operador puede leerlo: no hay E2EE adicional. Cuatro dígitos y Origin no autentican
+personas; revisar identidad/acceso con IT antes de producción. Laboratorio ficticio.
 
-## Servidor, privacidad y límites
+Ambos clientes deben alcanzar el mismo IIS y abrir WS. localhost en iPad es el
+iPad, no la laptop. Para otros equipos: DNS/ruta aprobados y certificado HTTPS
+confiable. CSP y políticas de acceso a red local del navegador siguen aplicando.
+Un IIS doméstico no tendrá alcance desde la universidad por instalarlo. No crear
+túneles, UPnP, port forwarding, VPN ni evasión de firewall.
 
-El servidor mantiene solo miembros, claves efímeras y metadatos de transferencias
-pendientes. Reenvía un bloque y lo libera; no crea archivos, base de datos,
-historial, analytics, logs de contenido ni endpoints para recuperar documentos.
-El ACK final elimina inmediatamente los metadatos del envío; cancelación,
-desconexión o TTL también los eliminan. Los buffers de red están acotados y se
-liberan al enviarse/cerrarse, sin prometer borrado físico de memoria del sistema.
-
-- Sala: ocho dispositivos y diez minutos sin actividad real. Los pings no
-  renuevan el TTL; envíos directos pueden renovar presencia sin enviar contenido.
-- Archivo: 50 MB; selección/bandeja: 100 MB y treinta elementos. Texto: 512 KB;
-  bloques: 64 KB. Validación de secuencia, tamaño, SHA-256 y nombres seguros.
-- Relay: 256 salas y 256 sockets; 16 conexiones por IP, 30 aperturas/minuto/IP,
-  128 MB y 16000 mensajes/minuto/IP. Tras proxy esas cuotas pueden compartirse.
-- Hasta 16 metadatos de transferencia por sala y 100 MB declarados por receptor;
-  vencen en dos minutos. Sin ACK del destinatario no se avanza el índice.
-- Payload máximo: 512 KB + 8 KB + cabecera de longitud. Compresión WS desactivada;
-  buffers de salida limitados y clientes lentos desconectados.
-- Origen web permitido, autenticación del dueño de sala y validación del emisor
-  real del socket. Un miembro no puede reenviar a otra sala ni falsificar el ACK
-  de otro dispositivo. El código corto permite entrar, **no autentica personas**.
-
-WebRTC cifra entre pares; relay usa HTTPS/WSS en producción. El operador del
-relay puede técnicamente ver el contenido mientras pasa: no se implementó E2EE
-de aplicación. No se deben enviar datos que la política de empresa prohíba
-compartir. La app no evita restricciones corporativas. E2EE futuro requiere un
-protocolo estándar revisado, no criptografía propia.
-
-## Instalaciones y despliegue
-
-`deployment-config.js` separa el código de la URL del servicio. GitHub Pages
-conserva `relayUrl: null` hasta tener un servidor real y habilitar su origen WSS
-exacto en CSP. Guardar el código o hacer push no crea infraestructura de relay.
-
-La opción integrada despliega el mismo Drop junto al relay: el servidor entrega
-ese módulo apuntando a su propio `/relay`, sin configurar URLs manualmente ni
-publicar secretos. Incluye Docker y `render.yaml`. La guía está en
-[drop-relay/README.md](../drop-relay/README.md). Render necesita una cuenta del
-usuario; la instancia pública y sus permisos de red se verifican después del
-despliegue. IIS/WebSocket con HTTPS corporativo y proxy hacia Node también es
-posible, pero un servidor solo interno no será accesible desde la universidad.
+El servidor anterior y Render se retiraron del árbol público actual. Sus commits
+ya publicados siguen en la historia pública: separar no elimina historia de Git.
 
 ## Validación
 
-`npm run check`, `npm run build`, `node tests/drop-browser.mjs` y
-`npm run check:drop:relay`. Las pruebas del servidor usan WebSockets reales:
-privacidad de rutas, límites, propiedad, TTL, bytes/ACK, limpieza y origen.
-La suite del navegador usa HTTP y relay WebSocket reales con cinco contextos;
-comprueba archivos PDF en ambos sentidos, cambio de ruta a mitad de archivo,
-señalización caída, envío a todos, F5 y reconexión. Solo los enlaces directos de
-esa prueba se simulan porque el Chromium administrado bloquea UDP de WebRTC.
-La suite directa conserva RTCDataChannel real por defecto y permite el adaptador
-explícito `DROP_TEST_TRANSPORT=memory` cuando esa política lo impide.
+`npm run check`, `npm run build` y `node tests/drop-browser.mjs`. La suite Direct
+usa RTCDataChannel real por defecto; `DROP_TEST_TRANSPORT=memory` permite su
+adaptador cuando Chromium administrado bloquea UDP. Ese adaptador no valida ICE
+en una red física. CI público no necesita repos privados ni secretos.
 
-La matriz física sigue pendiente: Chrome/Safari en iPhone/iPad, empresa Wi-Fi,
-empresa Ethernet, universidad, casa/hotspot, cambio Wi-Fi→celular y suspensión.
-Un éxito en cloud no prueba que TI permita WSS ni que iOS mantenga una pestaña
-activa al bloquear la pantalla. El plan gratuito de un proveedor puede dormir;
-no hay garantía de disponibilidad continua.
+Se conservan codec/RelaySession y fixtures. Tests HTTP/WS y CI del servidor
+pertenecen al proyecto privado; se retiró la integración pública que dependía
+del servidor anterior y su frontend servido. Fallback y archivos nuevos se
+probarán en fases 2 y 3. Pendientes: IIS real, servicio/ACL, certificados,
+logout/reboot, iOS, redes físicas, cambios de red y suspensión.

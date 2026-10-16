@@ -18,10 +18,10 @@ intenta recuperar el código, pero la bandeja sigue siendo temporal.
 
 **Importante:** estar en la misma sala no garantiza una ruta de red entre cada
 par. Ethernet y Wi-Fi corporativos pueden estar separados por políticas de red.
-La fase dos añade un relay HTTPS/WSS automático cuando se despliega y configura.
-GitHub Pages sigue sin relay hasta tener una URL real; la opción integrada en
-[Render/Docker](../drop-relay/README.md) lo configura automáticamente en su propia
-instalación. Usa la misma dirección de Drop en todos los equipos. Actualiza las PWA.
+GitHub Pages sigue en modo Direct con `relayUrl: null`. El nuevo relay privado
+IIS se prepara por fases en un proyecto separado; su primera entrega es solo
+servidor de laboratorio y admite dos participantes. El fallback del frontend
+y los archivos se integrarán después. Consulta [el estado y plan](ARCHITECTURE.md).
 
 ## Continuidad de conexión
 
@@ -110,36 +110,34 @@ v1.6 cambia deliberadamente una decisión anterior: la **sesión sí se conserva
 La cabecera permanece visible al desplazarse y ofrece **Volver a Toolchain** en la misma pestaña, sin depender del selector ni de la conexión de la sala. Hay otro acceso en el pie de página.
 
 
-## Conexión automática y diagnóstico
+## Conexión y relay privado IIS
 
-Drop prefiere el enlace directo. Con un servicio configurado, mantiene presencia
-por WSS y prueba WebRTC/ICE (incluidos TURN propios cuando se configuran). Si
-el canal falla o expira, usa el relay automáticamente, sin botones técnicos.
-Una interrupción durante un envío puede reiniciarlo con el mismo ID y conservar
-los destinatarios confirmados. Si se agotan las rutas, la cola queda disponible
-para reenvío manual. No se promete reanudación por bytes ni entrega con el
-receptor apagado: ambos dispositivos deben estar abiertos y conectados.
+Drop público mantiene Direct y hasta ocho dispositivos. La configuración
+central sigue con `relayUrl: null`; no activar el servidor privado de fase 1 en
+este frontend. Sus archivos y la activación diferida del fallback se integrarán
+en fases posteriores, conservando el motor de transferencias existente.
 
-El relay es RAM-only y no almacena archivos. HTTPS/WSS protege la conexión, pero
-el operador del relay puede ver el contenido en tránsito; no hay E2EE adicional.
-Sala: diez minutos sin actividad real; metadatos pendientes: dos minutos.
+El frontend anterior, cuando se configura un relay, abre presencia WSS antes
+de probar Direct. La fase 2 cambiará ese orden: Direct primero; si funciona,
+cero solicitudes al relay; si falla, health check y conexión de ambos clientes.
+Si ninguna ruta funciona, diagnóstico claro y cola disponible para reintentar.
 
 En **Conecta tus dispositivos → Diagnóstico de conexión** se muestran red,
-señalización, ruta activa e intentos, sin IP, credenciales, contenido ni hashes.
-Consulta [arquitectura y límites](ARCHITECTURE.md) y
-[despliegue en Render, Docker o servidor propio](../drop-relay/README.md).
+señalización y ruta activa, sin IP, credenciales, contenido ni hashes. El backend
+privado y sus instrucciones IIS/servicio Windows no forman parte de este repo.
+Consulta [arquitectura, límites y fases](ARCHITECTURE.md).
 
 ## Validación y matriz manual
 
-Desde la raíz: `npm run check`, `npm run build`, `node tests/drop-browser.mjs` y
-`npm run check:drop:relay`. La primera suite usa RTCDataChannel real por defecto;
-`DROP_TEST_TRANSPORT=memory` selecciona explícitamente su adaptador si Chromium
-bloquea UDP. La suite de relay utiliza HTTP/WebSocket reales, cinco contextos,
-PDF de ida/vuelta, cambio de ruta a mitad de archivo, señalización caída,
-reconexión, F5 y limpieza de metadatos. Solo su enlace WebRTC inicial se simula.
+Desde la raíz: `npm run check`, `npm run build`, `node tests/drop-browser.mjs`.
+La suite Direct usa RTCDataChannel real por defecto; `DROP_TEST_TRANSPORT=memory`
+selecciona explícitamente su adaptador cuando Chromium administrado bloquea UDP.
+Se mantienen tests del codec, RelaySession y fixtures wire v1 comunes. Las pruebas
+HTTP/WS y CI del nuevo servidor pertenecen exclusivamente al proyecto privado.
 
-Pendiente en dispositivos/redes reales: Chrome en iPad/iPhone, Safari, Wi-Fi y
-Ethernet corporativos, universidad, casa, hotspot, cambio Wi-Fi→celular y suspensión.
-Los tests locales no prueban permisos de la red corporativa ni disponibilidad
-de una instancia pública. Una cuenta y servicio de hosting siguen siendo
-necesarios para usar relay fuera del entorno de desarrollo.
+Pendiente en dispositivos/redes reales: IIS, servicio automático, certificados,
+Chrome/Safari en iPad/iPhone, empresa Wi-Fi/Ethernet, casa/universidad, cambios de
+red y suspensión. Ambos clientes deben alcanzar el mismo IIS; no se crean rutas
+ni se evaden restricciones. La integración completa del nuevo fallback aún no
+está habilitada. Los commits anteriores del servidor genérico siguen en la
+historia pública aunque sus archivos ya no estén en la versión actual.

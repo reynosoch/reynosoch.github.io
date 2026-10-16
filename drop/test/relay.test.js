@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import {encodeFrame,decodeFrame,MAX_FRAME} from '../relay-codec.js';
 import {relayAddress,RelaySession} from '../relay-transport.js';
 import {newCode} from '../protocol.js';
+import {readFile} from 'node:fs/promises';
+
+const wireFixtures=JSON.parse(await readFile(new URL('./fixtures/relay-wire-v1.json',import.meta.url)));
+test('el contrato v1 conserva los mismos bytes que las fixtures del backend privado',()=>{
+  for(const fixture of wireFixtures){
+    const packet=structuredClone(fixture.packet);
+    if(packet.message?.type==='file-chunk')packet.message.bytes=Uint8Array.from(packet.message.bytes);
+    const encoded=encodeFrame(packet);
+    assert.equal(Buffer.from(encoded).toString('hex'),fixture.hex,fixture.name);
+    const decoded=decodeFrame(encoded);delete decoded.binary;
+    assert.deepEqual(decoded,packet);
+  }
+});
 
 test('codec compartido conserva Unicode y la porción binaria sin base64',()=>{
   const packet={type:'data',to:'device',message:{type:'text',id:newCode(),text:'PDF de la uni → ñ 😊\n\u0000'}};
