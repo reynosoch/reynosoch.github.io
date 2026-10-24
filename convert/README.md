@@ -22,7 +22,7 @@ Convert es el conversor general de archivos y centro de herramientas PDF de Reyn
 
 ### Salidas
 
-PDF, DOCX, XLSX, PPTX, ODT, ODS, EPUB, CSV, TSV, TXT, Markdown, HTML, JSON, XML, YAML, RTF, PNG, JPG, WebP y SVG.
+PDF, DOCX, XLSX, ZIP (empaquetado de carpetas y lotes con soporte ZIP64), PPTX, ODT, ODS, EPUB, CSV, TSV, TXT, Markdown, HTML, JSON, XML, YAML, RTF, PNG, JPG, WebP y SVG.
 
 No todas las conversiones conservan exactamente el mismo aspecto. Office complejo, macros, SmartArt, fórmulas avanzadas, fuentes embebidas o diseños especiales pueden perder información al cruzar formatos. Convert transforma contenido real; nunca simula una conversión cambiando solamente la extensión.
 

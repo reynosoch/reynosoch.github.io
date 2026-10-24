@@ -2,50 +2,151 @@ import {engines,optional} from './engines.mjs';
 import {parseDelimited as parseCsv,detectTable,repairSingleColumn} from './tabular.mjs';
 import {worksheetXml} from './sheet-layout.mjs';
 import {reviewTable} from './table-review.mjs';
+import {buildZipArchive,inspectZipBlob,inferArchiveName,extractDataTransferFiles} from './zip-engine.mjs';
 
 const $=id=>document.getElementById(id);
 const state={files:[],format:'pdf',results:[]};
-const MAX_FILES=100,MAX_FILE_SIZE=250*1024*1024,MAX_TOTAL=1024*1024*1024;
+const MAX_QUEUE_RENDER=120;
+const MAX_TEXT_PARSE_BYTES=32*1024*1024;
 const fmtBytes=n=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KB`:n<1073741824?`${(n/1048576).toFixed(1)} MB`:`${(n/1073741824).toFixed(2)} GB`;
-const ext=name=>(name.split('.').pop()||'').toLowerCase();
-const base=name=>name.replace(/\.[^.]+$/,'');
+const ext=name=>{const s=String(name||'');const idx=s.lastIndexOf('.');return idx>0?s.slice(idx+1).toLowerCase():''};
+const base=name=>String(name||'archivo').replace(/\.[^.]+$/,'')||'archivo';
+const relPathOf=file=>file?._relativePath||file?.webkitRelativePath||'';
+const fileIdentity=file=>`${relPathOf(file)||file.name}\u0000${file.size}\u0000${file.lastModified}`;
 const escapeXml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const textExt=new Set(['txt','md','markdown','html','htm','xml','yaml','yml','toml','log','rtf','ini','cfg','conf','sql','js','mjs','cjs','ts','tsx','jsx','css','scss','sass','less','py','java','c','cpp','cc','cxx','h','hpp','cs','go','rs','php','rb','sh','bash','zsh','ps1','bat','cmd','tex','ics','vcf']);
-const dataExt=new Set(['csv','tsv','json','jsonl','ndjson']);
-const imageExt=new Set(['png','jpg','jpeg','webp','gif','bmp','svg','avif','heic','heif']);
+
+const textExt=new Set([
+  'txt','md','markdown','mdx','rst','adoc','asciidoc','org','tex','bib','sty','cls','rtf','log','diff','patch',
+  'html','htm','xhtml','xml','xsd','xsl','xslt','plist','rss','atom','opml','kml','gpx','jmx',
+  'yaml','yml','toml','ini','cfg','conf','config','properties','env','dotenv','editorconfig','gitignore','gitattributes','gitmodules','npmrc','nvmrc','yarnrc','dockerignore','dockerfile','containerfile','tf','tfvars','hcl','nomad','nix','dhall','kdl','jsonnet','libsonnet','star','bzl','buck','lock','mod','sum','work',
+  'sql','psql','plsql','tsql','mysql','prisma','graphql','gql','proto','thrift','avsc','cql','cypher','sparql',
+  'js','mjs','cjs','jsx','ts','mts','cts','tsx','vue','svelte','astro','hbs','ejs','pug','jade','twig','liquid','mustache','njk',
+  'css','scss','sass','less','styl','pcss',
+  'py','pyw','pyi','pyx','pxd','rpy','rb','erb','rake','gemspec','ru','php','phtml','lua','pl','pm','t','r','rmd','jl','tcl','awk','sed',
+  'java','kt','kts','groovy','gradle','scala','sc','clj','cljs','cljc','edn',
+  'c','h','cpp','hpp','cc','cxx','hxx','hh','ino','m','mm','cs','csx','fs','fsx','fsi','vb','vbs','csproj','fsproj','vbproj','sln','props','targets',
+  'go','rs','ron','swift','dart','zig','nim','d','v','cr','odin','gleam','roc',
+  'ex','exs','eex','heex','leex','erl','hrl','hs','lhs','cabal','elm','purs','ml','mli','re','rei','lisp','cl','el','scm','ss','rkt','fnl',
+  'sh','bash','zsh','fish','ksh','csh','tcsh','ps1','psm1','psd1','bat','cmd','nu','just','mk','mak','make','cmake',
+  'asm','s','nasm','masm','wat','wit','ll','wgsl','glsl','vert','frag','geom','comp','hlsl','fx','metal','cu','cuh',
+  'sol','vy','move','cairo','vhdl','vhd','sv','svh','f','for','f77','f90','f95','f03','f08','cob','cbl','ada','adb','ads','pas','pp','dpr','abap',
+  'ics','vcf','srt','vtt','ass','ssa','sub','lrc','cue','m3u','m3u8','pls'
+]);
+const textBaseNames=new Set([
+  'dockerfile','containerfile','makefile','gnumakefile','cmakelists.txt','justfile','procfile','vagrantfile','gemfile','rakefile','podfile','brewfile','fastfile','appfile','caddyfile','jenkinsfile','license','licence','readme','changelog','authors','contributors','notice','copying','todo','.env','.gitignore','.gitattributes','.editorconfig','.npmrc','.nvmrc','.prettierrc','.eslintrc','.babelrc','.dockerignore'
+]);
+const dataExt=new Set(['csv','tsv','tab','psv','json','jsonc','json5','jsonl','ndjson','geojson','har','ipynb']);
+const imageExt=new Set(['png','jpg','jpeg','jfif','pjpeg','pjp','webp','gif','bmp','svg','avif','heic','heif','tif','tiff','ico']);
 const sheetExt=new Set(['xlsx','xls','xlsb','ods']);
 const officeExt=new Set(['docx','odt','pptx','epub']);
-const accepted=new Set([...textExt,...dataExt,...imageExt,...sheetExt,...officeExt,'pdf']);
+const zipExt=new Set(['zip','jar','whl','apk','nupkg']);
 
 function message(text,bad=false){$('status').textContent=text;$('status').classList.toggle('danger-text',bad)}
 function setProgress(n){$('progress-bar').style.width=`${Math.max(0,Math.min(100,n))}%`}
-function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2500)}
-function mimeFor(format){return {pdf:'application/pdf',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',odt:'application/vnd.oasis.opendocument.text',ods:'application/vnd.oasis.opendocument.spreadsheet',epub:'application/epub+zip',csv:'text/csv;charset=utf-8',tsv:'text/tab-separated-values;charset=utf-8',txt:'text/plain;charset=utf-8',md:'text/markdown;charset=utf-8',html:'text/html;charset=utf-8',json:'application/json;charset=utf-8',xml:'application/xml;charset=utf-8',yaml:'text/yaml;charset=utf-8',rtf:'application/rtf',png:'image/png',jpg:'image/jpeg',webp:'image/webp',svg:'image/svg+xml'}[format]||'application/octet-stream'}
-function isAccepted(file){return accepted.has(ext(file.name))||file.type.startsWith('text/')}
+function download(blob,name){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.hidden=true;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}
+function mimeFor(format){return {pdf:'application/pdf',docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',zip:'application/zip',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',odt:'application/vnd.oasis.opendocument.text',ods:'application/vnd.oasis.opendocument.spreadsheet',epub:'application/epub+zip',csv:'text/csv;charset=utf-8',tsv:'text/tab-separated-values;charset=utf-8',txt:'text/plain;charset=utf-8',md:'text/markdown;charset=utf-8',html:'text/html;charset=utf-8',json:'application/json;charset=utf-8',xml:'application/xml;charset=utf-8',yaml:'text/yaml;charset=utf-8',rtf:'application/rtf',png:'image/png',jpg:'image/jpeg',webp:'image/webp',svg:'image/svg+xml'}[format]||'application/octet-stream'}
+
+async function readTextSafe(file,maxBytes=MAX_TEXT_PARSE_BYTES){
+  if(file.size<=maxBytes) return await file.text();
+  const partial=await file.slice(0,maxBytes).text();
+  return `${partial}\n\n[… Archivo de ${fmtBytes(file.size)} truncado a los primeros ${fmtBytes(maxBytes)} para procesamiento en memoria …]`;
+}
+
+async function isLikelyTextFile(file){
+  if(!file.size) return true;
+  const probe=new Uint8Array(await file.slice(0,Math.min(file.size,8192)).arrayBuffer());
+  let suspicious=0;
+  for(let i=0;i<probe.length;i++){
+    const b=probe[i];
+    if(b===0) return false;
+    if(b<7||(b>14&&b<32&&b!==27)) suspicious++;
+  }
+  return suspicious/probe.length<0.05;
+}
 
 function toDelimited(rows,delimiter=','){return rows.map(r=>r.map(v=>{const s=String(v??'');return /["\r\n,;\t]/.test(s)?`"${s.replaceAll('"','""')}"`:s}).join(delimiter)).join('\r\n')}
 function jsonRows(data){if(Array.isArray(data)){if(!data.length)return [['value']];if(data.every(v=>v&&typeof v==='object'&&!Array.isArray(v))){const keys=[...new Set(data.flatMap(Object.keys))];return [keys,...data.map(o=>keys.map(k=>typeof o[k]==='object'?JSON.stringify(o[k]):o[k]??''))]}return [['value'],...data.map(v=>[typeof v==='object'?JSON.stringify(v):v])]}if(data&&typeof data==='object')return [['key','value'],...Object.entries(data).map(([k,v])=>[k,typeof v==='object'?JSON.stringify(v):v])];return [['value'],[data]]}
 async function JSZip(){return (await import('../shot/vendor/jszip-3.10.2.mjs')).default}
 
-async function parseDocx(file){const Zip=await JSZip(),zip=await Zip.loadAsync(file),xml=await zip.file('word/document.xml')?.async('text');if(!xml)throw Error('DOCX sin word/document.xml.');const doc=new DOMParser().parseFromString(xml,'application/xml'),paras=[...doc.getElementsByTagNameNS('*','p')].map(p=>[...p.getElementsByTagNameNS('*','t')].map(n=>n.textContent).join('')).filter(Boolean),rows=[...doc.getElementsByTagNameNS('*','tr')].map(tr=>[...tr.getElementsByTagNameNS('*','tc')].map(tc=>[...tc.getElementsByTagNameNS('*','t')].map(n=>n.textContent).join(' '))).filter(r=>r.length);return {text:paras.join('\n'),rows:rows.length?rows:null}}
+async function parseDocx(file){const Zip=await JSZip(),zip=await Zip.loadAsync(file),xml=await zip.file('word/document.xml')?.async('text');if(!xml)throw Error('DOCX sin word/document.xml.');const doc=new DOMParser().parseFromString(xml,'application/xml'),paras=[...doc.getElementsByTagNameNS('*','p')].map(p=>[...doc.getElementsByTagNameNS('*','t')].map(n=>n.textContent).join('')).filter(Boolean),rows=[...doc.getElementsByTagNameNS('*','tr')].map(tr=>[...tr.getElementsByTagNameNS('*','tc')].map(tc=>[...tc.getElementsByTagNameNS('*','t')].map(n=>n.textContent).join(' '))).filter(r=>r.length);return {text:paras.join('\n'),rows:rows.length?rows:null}}
 async function parseOpenDoc(file){const Zip=await JSZip(),zip=await Zip.loadAsync(file),xml=await zip.file('content.xml')?.async('text');if(!xml)throw Error('OpenDocument sin content.xml.');const doc=new DOMParser().parseFromString(xml,'application/xml'),texts=[...doc.getElementsByTagNameNS('*','p')].map(n=>n.textContent.trim()).filter(Boolean),rows=[...doc.getElementsByTagNameNS('*','table-row')].map(r=>[...r.getElementsByTagNameNS('*','table-cell')].map(c=>c.textContent.trim())).filter(r=>r.length);return {text:texts.join('\n'),rows:rows.length?rows:null}}
 async function parsePptx(file){const Zip=await JSZip(),zip=await Zip.loadAsync(file),names=Object.keys(zip.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>(+a.match(/\d+/)[0])-(+b.match(/\d+/)[0])),slides=[];for(const name of names){const xml=await zip.file(name).async('text'),doc=new DOMParser().parseFromString(xml,'application/xml');slides.push([...doc.getElementsByTagNameNS('*','t')].map(n=>n.textContent).join(' '))}return {text:slides.map((s,i)=>`Diapositiva ${i+1}\n${s}`).join('\n\n'),rows:null}}
 async function parseEpub(file){const Zip=await JSZip(),zip=await Zip.loadAsync(file),names=Object.keys(zip.files).filter(n=>/\.(?:xhtml|html|htm)$/i.test(n)).sort(),parts=[];for(const name of names){const source=await zip.file(name)?.async('text');if(!source)continue;const doc=new DOMParser().parseFromString(source,'text/html'),text=(doc.body?.innerText||doc.body?.textContent||'').trim();if(text)parts.push(text)}return {text:parts.join('\n\n'),rows:null}}
 function colIndex(ref){let n=0;for(const c of (ref.match(/[A-Z]+/i)||['A'])[0].toUpperCase())n=n*26+c.charCodeAt(0)-64;return n-1}
 async function parseXlsxXml(file){const Zip=await JSZip(),zip=await Zip.loadAsync(file);let shared=[];const ss=zip.file('xl/sharedStrings.xml');if(ss){const doc=new DOMParser().parseFromString(await ss.async('text'),'application/xml');shared=[...doc.getElementsByTagNameNS('*','si')].map(si=>[...si.getElementsByTagNameNS('*','t')].map(n=>n.textContent).join(''))}const sheetName=Object.keys(zip.files).find(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n));if(!sheetName)throw Error('XLSX sin hoja legible.');const doc=new DOMParser().parseFromString(await zip.file(sheetName).async('text'),'application/xml'),rows=[];for(const r of [...doc.getElementsByTagNameNS('*','row')]){const out=[];for(const c of [...r.getElementsByTagNameNS('*','c')]){const i=colIndex(c.getAttribute('r')||'A1'),t=c.getAttribute('t'),v=c.getElementsByTagNameNS('*','v')[0]?.textContent??'',inline=c.getElementsByTagNameNS('*','t')[0]?.textContent;out[i]=t==='s'?shared[+v]??v:t==='inlineStr'?inline??v:v}rows.push(out.map(v=>v??''))}return {rows,text:rows.map(r=>r.join('\t')).join('\n')}}
 async function parseLegacySheet(file){const XLSX=await optional(engines.sheet,'XLS/XLSB');const workbook=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true}),name=workbook.SheetNames[0];if(!name)throw Error('La hoja no contiene pestañas legibles.');const rows=XLSX.utils.sheet_to_json(workbook.Sheets[name],{header:1,raw:false,defval:''});return {rows,text:rows.map(r=>r.join('\t')).join('\n')}}
-async function parseYaml(file){const text=await file.text();try{const YAML=await engines.yaml(),data=(YAML.load||YAML.default?.load)(text);return {text,rows:jsonRows(data)}}catch{return {text,rows:null}}}
+async function parseYaml(file){const text=await readTextSafe(file);try{const YAML=await engines.yaml(),data=(YAML.load||YAML.default?.load)(text);return {text,rows:jsonRows(data)}}catch{return {text,rows:null}}}
+async function parseIpynb(file){
+  const text=await readTextSafe(file);
+  const nb=JSON.parse(text);
+  const cells=Array.isArray(nb?.cells)?nb.cells:[];
+  const rows=[['cell','type','content']];
+  const parts=[];
+  cells.forEach((cell,i)=>{
+    const type=String(cell?.cell_type||'code');
+    const src=Array.isArray(cell?.source)?cell.source.join(''):String(cell?.source||'');
+    rows.push([String(i+1),type,src]);
+    parts.push(`# [${i+1}] ${type.toUpperCase()}\n${src}`);
+  });
+  return {text:parts.join('\n\n')||text,rows:rows.length>1?rows:jsonRows(nb)};
+}
+async function inspectBinaryFile(file){
+  const head=new Uint8Array(await file.slice(0,Math.min(file.size,32)).arrayBuffer());
+  const hex=[...head].map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+  const path=relPathOf(file)||file.name;
+  const rows=[
+    ['property','value'],
+    ['name',file.name],
+    ['path',path],
+    ['extension',ext(file.name)||'binary'],
+    ['mime',file.type||'application/octet-stream'],
+    ['size_bytes',String(file.size)],
+    ['size_human',fmtBytes(file.size)],
+    ['magic_hex',hex||'empty']
+  ];
+  return {
+    kind:'table',
+    file,
+    originalExt:ext(file.name),
+    rows,
+    text:`${path}\nTamaño: ${fmtBytes(file.size)} (${file.size} bytes)\nTipo: ${file.type||ext(file.name)||'binario'}\nCabecera HEX: ${hex||'vacío'}`
+  };
+}
 async function pdfJs(){try{const pdfjs=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs');pdfjs.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';return pdfjs}catch{throw Error('PDF → editable necesita PDF.js y esta red bloqueó su carga.')}}
 async function parsePdf(file){const pdfjs=await pdfJs(),pdf=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise,pages=[];for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i),tc=await page.getTextContent();pages.push(tc.items.map(x=>x.str).join(' '))}return {text:pages.map((p,i)=>`Página ${i}\n${p}`).join('\n\n'),rows:null,pdf,pages}}
 async function imageBitmap(file){if('createImageBitmap'in window){try{return await createImageBitmap(file)}catch{}}return await new Promise((res,rej)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);res(img)};img.onerror=()=>{URL.revokeObjectURL(url);rej(Error('El navegador no pudo decodificar esta imagen.'))};img.src=url})}
 async function normalizeImage(file){let blob=file,e=ext(file.name);if(e==='heic'||e==='heif'){const mod=await optional(engines.heic,'HEIC/HEIF'),heic2any=mod.default||mod;const out=await heic2any({blob:file,toType:'image/png',quality:.94});blob=Array.isArray(out)?out[0]:out;e='png'}const img=await imageBitmap(blob),width=img.width||img.naturalWidth,height=img.height||img.naturalHeight;img.close?.();return {kind:'image',file:blob,source:file,text:`${file.name}\n${width} × ${height} px\n${fmtBytes(file.size)}`,rows:[['property','value'],['name',file.name],['type',file.type||e],['size',file.size],['width',width],['height',height]],width,height,originalExt:ext(file.name)}}
-async function normalize(file){const e=ext(file.name);if(imageExt.has(e))return normalizeImage(file);if(e==='docx')return {kind:'document',file,originalExt:e,...await parseDocx(file)};if(e==='odt')return {kind:'document',file,originalExt:e,...await parseOpenDoc(file)};if(e==='pptx')return {kind:'document',file,originalExt:e,...await parsePptx(file)};if(e==='epub')return {kind:'document',file,originalExt:e,...await parseEpub(file)};if(e==='xlsx'){const parsed=await parseXlsxXml(file),repaired=repairSingleColumn(parsed.rows);return {kind:'table',file,originalExt:e,...parsed,tableText:parsed.rows.every(row=>row.length===1)?parsed.text:undefined,...repaired?{rows:repaired.rows,repaired:true}:{} }};if(e==='xls'||e==='xlsb')return {kind:'table',file,originalExt:e,...await parseLegacySheet(file)};if(e==='ods')return {kind:'table',file,originalExt:e,...await parseOpenDoc(file)};if(e==='csv'||e==='tsv'){const text=await file.text(),rows=detectTable(text)?.rows||parseCsv(text,e==='tsv'?'\t':',');return {kind:'table',file,originalExt:e,text,tableText:text,rows}}if(e==='json'){const text=await file.text(),data=JSON.parse(text);return {kind:'table',file,originalExt:e,text:JSON.stringify(data,null,2),rows:jsonRows(data)}}if(e==='jsonl'||e==='ndjson'){const data=(await file.text()).split(/\r?\n/).filter(Boolean).map(line=>JSON.parse(line));return {kind:'table',file,originalExt:e,text:JSON.stringify(data,null,2),rows:jsonRows(data)}}if(e==='yaml'||e==='yml')return {kind:'table',file,originalExt:e,...await parseYaml(file)};if(e==='pdf')return {kind:'pdf',file,originalExt:e,...await parsePdf(file)};if(textExt.has(e)||file.type.startsWith('text/')){let text=await file.text();if(e==='html'||e==='htm'){const doc=new DOMParser().parseFromString(text,'text/html');text=doc.body?.innerText||doc.body?.textContent||text}else if(e==='rtf')text=text.replace(/\\'[0-9a-f]{2}/gi,' ').replace(/\\[a-z]+\d* ?/gi,'').replace(/[{}]/g,'');const table=['txt','log'].includes(e)?detectTable(text):null;return {kind:table?'table':'text',file,originalExt:e,text,tableText:['txt','log'].includes(e)?text:undefined,rows:table?.rows||null}}throw Error(`.${e||'?'} todavía no tiene lector.`)}
+async function normalize(file){
+  const e=ext(file.name),lowerName=String(file.name||'').toLowerCase();
+  if(imageExt.has(e)){try{return await normalizeImage(file)}catch{return inspectBinaryFile(file)}}
+  if(e==='docx')return {kind:'document',file,originalExt:e,...await parseDocx(file)};
+  if(e==='odt')return {kind:'document',file,originalExt:e,...await parseOpenDoc(file)};
+  if(e==='pptx')return {kind:'document',file,originalExt:e,...await parsePptx(file)};
+  if(e==='epub')return {kind:'document',file,originalExt:e,...await parseEpub(file)};
+  if(e==='xlsx'){const parsed=await parseXlsxXml(file),repaired=repairSingleColumn(parsed.rows);return {kind:'table',file,originalExt:e,...parsed,tableText:parsed.rows.every(row=>row.length===1)?parsed.text:undefined,...repaired?{rows:repaired.rows,repaired:true}:{} }}
+  if(e==='xls'||e==='xlsb')return {kind:'table',file,originalExt:e,...await parseLegacySheet(file)};
+  if(e==='ods')return {kind:'table',file,originalExt:e,...await parseOpenDoc(file)};
+  if(zipExt.has(e)){try{return {kind:'table',file,originalExt:e,...await inspectZipBlob(file)}}catch{return inspectBinaryFile(file)}}
+  if(e==='ipynb'){try{return {kind:'table',file,originalExt:e,...await parseIpynb(file)}}catch{}}
+  if(e==='csv'||e==='tsv'||e==='tab'||e==='psv'){const text=await readTextSafe(file),delim=e==='tsv'||e==='tab'?'\t':e==='psv'?'|':',',rows=detectTable(text)?.rows||parseCsv(text,delim);return {kind:'table',file,originalExt:e,text,tableText:text,rows}}
+  if(e==='json'||e==='jsonc'||e==='json5'||e==='geojson'||e==='har'){const text=await readTextSafe(file);try{const cleaned=e==='jsonc'||e==='json5'?text.replace(/^\s*\/\/.*$/gm,'').replace(/,(\s*[}\]])/g,'$1'):text;const data=JSON.parse(cleaned);return {kind:'table',file,originalExt:e,text:JSON.stringify(data,null,2),rows:jsonRows(data)}}catch{return {kind:'text',file,originalExt:e,text,rows:null}}}
+  if(e==='jsonl'||e==='ndjson'){const text=await readTextSafe(file),data=text.split(/\r?\n/).filter(Boolean).map(line=>{try{return JSON.parse(line)}catch{return {line}}});return {kind:'table',file,originalExt:e,text:JSON.stringify(data,null,2),rows:jsonRows(data)}}
+  if(e==='yaml'||e==='yml')return {kind:'table',file,originalExt:e,...await parseYaml(file)};
+  if(e==='pdf')return {kind:'pdf',file,originalExt:e,...await parsePdf(file)};
+  if(textExt.has(e)||textBaseNames.has(lowerName)||file.type.startsWith('text/')||await isLikelyTextFile(file)){
+    let text=await readTextSafe(file);
+    if(e==='html'||e==='htm'||e==='xhtml'){const doc=new DOMParser().parseFromString(text,'text/html');text=doc.body?.innerText||doc.body?.textContent||text}
+    else if(e==='rtf')text=text.replace(/\\'[0-9a-f]{2}/gi,' ').replace(/\\[a-z]+\d* ?/gi,'').replace(/[{}]/g,'');
+    const table=['txt','log'].includes(e)?detectTable(text):null;
+    return {kind:table?'table':'text',file,originalExt:e||'txt',text,tableText:['txt','log'].includes(e)?text:undefined,rows:table?.rows||null};
+  }
+  return inspectBinaryFile(file);
+}
 
 function rowsFrom(model){if(model.rows?.length)return model.rows;return String(model.text||'').split(/\r?\n/).filter(Boolean).map(line=>[line])}
 function textFrom(model){return model.text||rowsFrom(model).map(r=>r.join('\t')).join('\n')}
 function structuredRows(model){const rows=rowsFrom(model),head=rows[0]||['value'];return rows.slice(1).map(r=>Object.fromEntries(head.map((h,i)=>[String(h||`col_${i+1}`),r[i]??''])))}
-function cellRef(col,row){let s='',n=col+1;while(n){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26)}return s+row}
 
 async function imageBlob(file,format){const img=await imageBitmap(file),c=document.createElement('canvas');c.width=img.width||img.naturalWidth;c.height=img.height||img.naturalHeight;c.getContext('2d').drawImage(img,0,0,c.width,c.height);img.close?.();return await new Promise((res,rej)=>c.toBlob(blob=>blob?res(blob):rej(Error(`No se pudo codificar ${format.toUpperCase()}.`)),mimeFor(format),format==='jpg'?.92:.9))}
 async function fileDataUrl(file){return await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
@@ -75,25 +176,210 @@ async function renderTextImage(model,format){const lines=wrap(textFrom(model),72
 async function svgBlob(model){if(model.kind==='image'){const data=await fileDataUrl(model.file);return new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="${model.width}" height="${model.height}" viewBox="0 0 ${model.width} ${model.height}"><image width="100%" height="100%" href="${data}"/></svg>`],{type:mimeFor('svg')})}const lines=wrap(textFrom(model),86).slice(0,180),h=Math.max(400,80+lines.length*30);return new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="${h}" viewBox="0 0 1400 ${h}"><rect width="100%" height="100%" fill="white"/><g fill="#111" font-family="system-ui" font-size="22">${lines.map((v,i)=>`<text x="55" y="${65+i*30}">${escapeXml(v)}</text>`).join('')}</g></svg>`],{type:mimeFor('svg')})}
 async function htmlBlob(model){if(model.kind==='image'){const data=await fileDataUrl(model.file);return new Blob([`<!doctype html><meta charset="utf-8"><title>${escapeHtml(model.source?.name||'Imagen')}</title><img src="${data}" alt="${escapeHtml(model.source?.name||'Imagen')}" style="max-width:100%;height:auto">`],{type:mimeFor('html')})}if(['md','markdown'].includes(model.originalExt)){try{const marked=await engines.marked(),parse=marked.parse||marked.marked?.parse;return new Blob([`<!doctype html><meta charset="utf-8"><body>${parse(textFrom(model))}</body>`],{type:mimeFor('html')})}catch{}}return new Blob([htmlFrom(model)],{type:mimeFor('html')})}
 
-async function convertModel(model,format){const sourceExt=model.originalExt||ext(model.source?.name||model.file.name||'');if((sourceExt===format&&!model.repaired)||(sourceExt==='jpeg'&&format==='jpg')||(sourceExt==='jpg'&&format==='jpeg'))return model.source||model.file;if(format==='pdf')return model.kind==='image'?imagePdf(model.file):textPdf(textFrom(model),model.source?.name||model.file.name||'Documento');if(format==='docx')return model.kind==='image'?imageDocxBlob(model):docxBlob(model);if(format==='xlsx')return xlsxBlob(model);if(format==='pptx')return pptxBlob(model);if(format==='odt')return odtBlob(model);if(format==='ods')return odsBlob(model);if(format==='epub')return epubBlob(model);if(format==='csv')return new Blob([toDelimited(rowsFrom(model),',')],{type:mimeFor(format)});if(format==='tsv')return new Blob([toDelimited(rowsFrom(model),'\t')],{type:mimeFor(format)});if(format==='txt')return new Blob([textFrom(model)],{type:mimeFor(format)});if(format==='md')return new Blob([markdownFrom(model)],{type:mimeFor(format)});if(format==='html')return htmlBlob(model);if(format==='json'){const data=model.rows?.length?structuredRows(model):{text:textFrom(model)};return new Blob([JSON.stringify(data,null,2)],{type:mimeFor(format)})}if(format==='xml')return new Blob([xmlFrom(model)],{type:mimeFor(format)});if(format==='yaml')return new Blob([await yamlFrom(model)],{type:mimeFor(format)});if(format==='rtf')return new Blob([rtfFrom(model)],{type:mimeFor(format)});if(['png','jpg','webp'].includes(format)){if(model.kind==='pdf')return pdfImage(model,format);return model.kind==='image'?imageBlob(model.file,format):renderTextImage(model,format)}if(format==='svg')return svgBlob(model);throw Error(`Salida ${format.toUpperCase()} no implementada.`)}
+async function convertModel(model,format){const sourceExt=model.originalExt||ext(model.source?.name||model.file.name||'');if((sourceExt===format&&!model.repaired)||(sourceExt==='jpeg'&&format==='jpg')||(sourceExt==='jpg'&&format==='jpeg'))return model.source||model.file;if(format==='zip')return buildZipArchive([model.source||model.file]);if(format==='pdf')return model.kind==='image'?imagePdf(model.file):textPdf(textFrom(model),model.source?.name||model.file.name||'Documento');if(format==='docx')return model.kind==='image'?imageDocxBlob(model):docxBlob(model);if(format==='xlsx')return xlsxBlob(model);if(format==='pptx')return pptxBlob(model);if(format==='odt')return odtBlob(model);if(format==='ods')return odsBlob(model);if(format==='epub')return epubBlob(model);if(format==='csv')return new Blob([toDelimited(rowsFrom(model),',')],{type:mimeFor(format)});if(format==='tsv')return new Blob([toDelimited(rowsFrom(model),'\t')],{type:mimeFor(format)});if(format==='txt')return new Blob([textFrom(model)],{type:mimeFor(format)});if(format==='md')return new Blob([markdownFrom(model)],{type:mimeFor(format)});if(format==='html')return htmlBlob(model);if(format==='json'){const data=model.rows?.length?structuredRows(model):{text:textFrom(model)};return new Blob([JSON.stringify(data,null,2)],{type:mimeFor(format)})}if(format==='xml')return new Blob([xmlFrom(model)],{type:mimeFor(format)});if(format==='yaml')return new Blob([await yamlFrom(model)],{type:mimeFor(format)});if(format==='rtf')return new Blob([rtfFrom(model)],{type:mimeFor(format)});if(['png','jpg','webp'].includes(format)){if(model.kind==='pdf')return pdfImage(model,format);return model.kind==='image'?imageBlob(model.file,format):renderTextImage(model,format)}if(format==='svg')return svgBlob(model);throw Error(`Salida ${format.toUpperCase()} no implementada.`)}
 function resultName(file,format){return `${base(file.name)}.${format}`}
 
-function renderQueue(){$('queue').replaceChildren();$('window-count').textContent=`${state.files.length} archivo${state.files.length===1?'':'s'}`;if(!state.files.length){const p=document.createElement('p');p.className='queue-empty';p.textContent='La ventana está vacía.';$('queue').append(p);return}for(const [i,file] of state.files.entries()){const row=document.createElement('div');row.className='file-row';const badge=document.createElement('div');badge.className='file-type';badge.textContent=(ext(file.name)||'FILE').slice(0,5).toUpperCase();const copy=document.createElement('div');copy.className='file-copy';copy.innerHTML=`<strong></strong><small>${fmtBytes(file.size)}${file.webkitRelativePath?` · ${escapeHtml(file.webkitRelativePath)}`:''}</small>`;copy.querySelector('strong').textContent=file.name;const del=document.createElement('button');del.textContent='×';del.title='Quitar';del.onclick=e=>{e.stopPropagation();state.files.splice(i,1);renderQueue();message(`${state.files.length} archivo(s) en cola.`)};row.append(badge,copy,del);$('queue').append(row)}}
-function addFiles(list){const all=[...list],incoming=[],reasons=[];let total=state.files.reduce((n,f)=>n+f.size,0);for(const file of all){if(state.files.length+incoming.length>=MAX_FILES){reasons.push('límite de 100 archivos');break}if(!isAccepted(file)){reasons.push(`.${ext(file.name)||'?'}`);continue}if(file.size>MAX_FILE_SIZE){reasons.push(`${file.name} supera 250 MB`);continue}if(total+file.size>MAX_TOTAL){reasons.push('la tanda supera 1 GB');break}if(state.files.some(f=>f.name===file.name&&f.size===file.size&&f.lastModified===file.lastModified)||incoming.some(f=>f.name===file.name&&f.size===file.size&&f.lastModified===file.lastModified))continue;incoming.push(file);total+=file.size}state.files.push(...incoming);renderQueue();message(reasons.length?`${incoming.length} agregados · omitidos: ${[...new Set(reasons)].slice(0,4).join(', ')}.`:`${incoming.length} archivo(s) agregados · ${fmtBytes(total)} en cola.`,Boolean(!incoming.length&&all.length))}
-function chooseFormat(format){state.format=format;document.querySelectorAll('[data-format]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.format===format)));$('output-format').value=format}
-function clearResults(){state.results.forEach(r=>URL.revokeObjectURL(r.url));state.results=[];$('results').innerHTML='<p class="queue-empty">Aquí aparecerán tus conversiones.</p>';$('download-all').disabled=true}
-async function convertAll(){if(!state.files.length){message('Agrega al menos un archivo.',true);return}$('convert').disabled=true;clearResults();setProgress(2);for(let i=0;i<state.files.length;i++){const file=state.files[i];try{message(`Leyendo ${file.name}…`);const model=await normalize(file);if(['xlsx','ods','csv','tsv'].includes(state.format)&&!await reviewTable(model)){message('Conversión cancelada.');$('convert').disabled=false;$('download-all').disabled=!state.results.length;setProgress(0);return}setProgress(8+Math.round((i/state.files.length)*55));message(`Convirtiendo ${file.name} → ${state.format.toUpperCase()}…`);const blob=await convertModel(model,state.format),name=resultName(file,state.format),url=URL.createObjectURL(blob);state.results.push({name,blob,url});addResult(name,blob,url,model.rows)}catch(error){addError(file.name,error?.message||String(error))}setProgress(15+Math.round(((i+1)/state.files.length)*83))}$('convert').disabled=false;$('download-all').disabled=!state.results.length;setProgress(100);message(`${state.results.length} resultado(s) listos · ${state.files.length-state.results.length} con error. Procesado en este navegador.`,!state.results.length)}
-function addResult(name,blob,url,rows){if($('results').querySelector('.queue-empty'))$('results').replaceChildren();const card=document.createElement('div');card.className='result-card';const badge=document.createElement('div');badge.className='result-badge';badge.textContent=ext(name).toUpperCase();const copy=document.createElement('div');copy.className='result-copy';copy.innerHTML='<strong></strong><small></small>';copy.querySelector('strong').textContent=name;copy.querySelector('small').textContent=fmtBytes(blob.size)+(rows?.length?` · ${rows.length-1} filas · ${rows.reduce((max,row)=>Math.max(max,row.length),0)} columnas`:'');const btn=document.createElement('button');btn.textContent='Descargar';btn.onclick=()=>download(blob,name);card.append(badge,copy,btn);$('results').append(card)}
-function addError(name,error){if($('results').querySelector('.queue-empty'))$('results').replaceChildren();const card=document.createElement('div');card.className='result-card';card.innerHTML='<div class="result-badge">!</div><div class="result-copy"><strong></strong><small class="danger-text"></small></div>';card.querySelector('strong').textContent=name;card.querySelector('small').textContent=error;$('results').append(card)}
-async function downloadAll(){if(!state.results.length)return;if(state.results.length===1){download(state.results[0].blob,state.results[0].name);return}const Zip=await JSZip(),zip=new Zip();state.results.forEach(r=>zip.file(r.name,r.blob));download(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'convert-results.zip')}
+function renderQueue(){
+  const queue=$('queue');
+  queue.replaceChildren();
+  $('window-count').textContent=`${state.files.length} archivo${state.files.length===1?'':'s'}`;
+  if(!state.files.length){
+    const p=document.createElement('p');
+    p.className='queue-empty';
+    p.textContent='La ventana está vacía.';
+    queue.append(p);
+    return;
+  }
+  const frag=document.createDocumentFragment();
+  const limit=Math.min(state.files.length,MAX_QUEUE_RENDER);
+  for(let i=0;i<limit;i++){
+    const file=state.files[i];
+    const row=document.createElement('div');
+    row.className='file-row';
+    const badge=document.createElement('div');
+    badge.className='file-type';
+    badge.textContent=(ext(file.name)||'FILE').slice(0,5).toUpperCase();
+    const copy=document.createElement('div');
+    copy.className='file-copy';
+    const rPath=relPathOf(file);
+    copy.innerHTML=`<strong></strong><small>${fmtBytes(file.size)}${rPath?` · ${escapeHtml(rPath)}`:''}</small>`;
+    copy.querySelector('strong').textContent=file.name;
+    const del=document.createElement('button');
+    del.textContent='×';
+    del.title='Quitar';
+    del.onclick=e=>{
+      e.stopPropagation();
+      state.files.splice(i,1);
+      renderQueue();
+      message(`${state.files.length} archivo(s) en cola.`);
+    };
+    row.append(badge,copy,del);
+    frag.append(row);
+  }
+  if(state.files.length>limit){
+    const totalBytes=state.files.reduce((sum,f)=>sum+(Number(f.size)||0),0);
+    const more=document.createElement('p');
+    more.className='queue-empty';
+    more.textContent=`… y ${(state.files.length-limit).toLocaleString('es-MX')} archivo(s) más en la cola (${fmtBytes(totalBytes)} en total).`;
+    frag.append(more);
+  }
+  queue.append(frag);
+}
+
+function addFiles(list,options={}){
+  const all=Array.from(list||[]);
+  if(!all.length)return;
+  const seen=new Set(state.files.map(fileIdentity));
+  const incoming=[];
+  let total=state.files.reduce((n,f)=>n+(Number(f.size)||0),0);
+  let hasFolderPaths=Boolean(options.fromFolder);
+  for(const file of all){
+    if(!file)continue;
+    if(relPathOf(file).includes('/'))hasFolderPaths=true;
+    const key=fileIdentity(file);
+    if(seen.has(key))continue;
+    seen.add(key);
+    incoming.push(file);
+    total+=Number(file.size)||0;
+  }
+  state.files.push(...incoming);
+  if(hasFolderPaths&&incoming.length){
+    chooseFormat('zip');
+  }
+  renderQueue();
+  const folderHint=hasFolderPaths?' · Salida ZIP lista para empaquetar carpeta':'';
+  message(`${incoming.length.toLocaleString('es-MX')} archivo(s) agregados · ${fmtBytes(total)} en cola${folderHint}.`,Boolean(!incoming.length&&all.length));
+}
+
+function chooseFormat(format){
+  state.format=format;
+  document.querySelectorAll('[data-format]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.format===format)));
+  $('output-format').value=format;
+}
+
+function clearResults(){
+  state.results.forEach(r=>URL.revokeObjectURL(r.url));
+  state.results=[];
+  $('results').innerHTML='<p class="queue-empty">Aquí aparecerán tus conversiones.</p>';
+  $('download-all').disabled=true;
+}
+
+async function convertAll(){
+  if(!state.files.length){message('Agrega al menos un archivo o carpeta.',true);return}
+  $('convert').disabled=true;
+  clearResults();
+  setProgress(2);
+
+  if(state.format==='zip'){
+    try{
+      const archiveName=inferArchiveName(state.files);
+      message(`Empacando ${state.files.length.toLocaleString('es-MX')} archivo(s) en ${archiveName}…`);
+      let lastTick=0;
+      const blob=await buildZipArchive(state.files,info=>{
+        const now=performance.now();
+        if(now-lastTick>45||info.index===info.totalFiles){
+          lastTick=now;
+          setProgress(info.percent);
+          message(`Empacando ${archiveName} (${info.index.toLocaleString('es-MX')}/${info.totalFiles.toLocaleString('es-MX')} · ${fmtBytes(info.processedBytes)} / ${fmtBytes(info.totalBytes)})…`);
+        }
+      });
+      const url=URL.createObjectURL(blob);
+      state.results.push({name:archiveName,blob,url});
+      addResult(archiveName,blob,url,null,`${state.files.length.toLocaleString('es-MX')} archivo${state.files.length===1?'':'s'} en ZIP`);
+      $('convert').disabled=false;
+      $('download-all').disabled=false;
+      setProgress(100);
+      message(`${archiveName} listo (${fmtBytes(blob.size)} · ${state.files.length.toLocaleString('es-MX')} archivo${state.files.length===1?'':'s'}). Procesado localmente.`,false);
+    }catch(error){
+      addError('Archivo ZIP',error?.message||String(error));
+      $('convert').disabled=false;
+      setProgress(0);
+      message(error?.message||String(error),true);
+    }
+    return;
+  }
+
+  for(let i=0;i<state.files.length;i++){
+    const file=state.files[i];
+    try{
+      message(`Leyendo ${file.name}…`);
+      const model=await normalize(file);
+      if(['xlsx','ods','csv','tsv'].includes(state.format)&&!await reviewTable(model)){
+        message('Conversión cancelada.');
+        $('convert').disabled=false;
+        $('download-all').disabled=!state.results.length;
+        setProgress(0);
+        return;
+      }
+      setProgress(8+Math.round((i/state.files.length)*55));
+      message(`Convirtiendo ${file.name} → ${state.format.toUpperCase()}…`);
+      const blob=await convertModel(model,state.format),name=resultName(file,state.format),url=URL.createObjectURL(blob);
+      state.results.push({name,blob,url});
+      addResult(name,blob,url,model.rows);
+    }catch(error){
+      addError(file.name,error?.message||String(error));
+    }
+    setProgress(15+Math.round(((i+1)/state.files.length)*83));
+  }
+  $('convert').disabled=false;
+  $('download-all').disabled=!state.results.length;
+  setProgress(100);
+  message(`${state.results.length} resultado(s) listos · ${state.files.length-state.results.length} con error. Procesado en este navegador.`,!state.results.length);
+}
+
+function addResult(name,blob,url,rows,customMeta=''){
+  if($('results').querySelector('.queue-empty'))$('results').replaceChildren();
+  const card=document.createElement('div');
+  card.className='result-card';
+  const badge=document.createElement('div');
+  badge.className='result-badge';
+  badge.textContent=ext(name).toUpperCase();
+  const copy=document.createElement('div');
+  copy.className='result-copy';
+  copy.innerHTML='<strong></strong><small></small>';
+  copy.querySelector('strong').textContent=name;
+  copy.querySelector('small').textContent=fmtBytes(blob.size)+(customMeta?` · ${customMeta}`:rows?.length?` · ${rows.length-1} filas · ${rows.reduce((max,row)=>Math.max(max,row.length),0)} columnas`:'');
+  const btn=document.createElement('button');
+  btn.textContent='Descargar';
+  btn.onclick=()=>download(blob,name);
+  card.append(badge,copy,btn);
+  $('results').append(card);
+}
+
+function addError(name,error){
+  if($('results').querySelector('.queue-empty'))$('results').replaceChildren();
+  const card=document.createElement('div');
+  card.className='result-card';
+  card.innerHTML='<div class="result-badge">!</div><div class="result-copy"><strong></strong><small class="danger-text"></small></div>';
+  card.querySelector('strong').textContent=name;
+  card.querySelector('small').textContent=error;
+  $('results').append(card);
+}
+
+async function downloadAll(){
+  if(!state.results.length)return;
+  if(state.results.length===1){
+    download(state.results[0].blob,state.results[0].name);
+    return;
+  }
+  const zipBlob=await buildZipArchive(state.results.map(r=>({file:r.blob,path:r.name})));
+  download(zipBlob,'convert-results.zip');
+}
 
 $('file-input').onchange=e=>{addFiles(e.target.files);e.target.value=''};
-$('folder-input').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+$('folder-input').onchange=e=>{addFiles(e.target.files,{fromFolder:true});e.target.value=''};
 $('pick-files').onclick=e=>{e.stopPropagation();$('file-input').click()};
 $('pick-folder').onclick=e=>{e.stopPropagation();$('folder-input').click()};
 $('dropzone').onclick=e=>{if(!e.target.closest('button'))$('file-input').click()};
 for(const type of ['dragenter','dragover'])$('dropzone').addEventListener(type,e=>{e.preventDefault();$('dropzone').classList.add('drag')});
-for(const type of ['dragleave','drop'])$('dropzone').addEventListener(type,e=>{$('dropzone').classList.remove('drag');if(type==='drop'){e.preventDefault();addFiles(e.dataTransfer.files)}});
+for(const type of ['dragleave','drop'])$('dropzone').addEventListener(type,async e=>{
+  $('dropzone').classList.remove('drag');
+  if(type==='drop'){
+    e.preventDefault();
+    const {files,hasDirectory}=await extractDataTransferFiles(e.dataTransfer);
+    addFiles(files,{fromFolder:hasDirectory});
+  }
+});
 document.addEventListener('paste',e=>{const files=[...(e.clipboardData?.files||[])];if(files.length)addFiles(files)});
 document.querySelectorAll('[data-format]').forEach(b=>b.onclick=()=>chooseFormat(b.dataset.format));
 $('output-format').onchange=e=>chooseFormat(e.target.value);

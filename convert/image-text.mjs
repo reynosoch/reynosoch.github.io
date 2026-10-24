@@ -2,6 +2,7 @@ import {engines,optional} from './engines.mjs';
 
 const IMAGE_EXT=new Set(['png','jpg','jpeg','jfif','pjpeg','pjp','webp','gif','bmp','svg','avif','heic','heif','tif','tiff','ico']);
 const MAX_IMAGE_SIZE=300*1024*1024;
+const MAX_CAPTURED_IMAGES=40;
 const MAX_PIXELS=24_000_000;
 const MAX_DIMENSION=8000;
 const captured=[];
@@ -47,6 +48,7 @@ function setProgress(value){
 function captureFiles(files){
   let added=0;
   for(const file of Array.from(files||[])){
+    if(captured.length>=MAX_CAPTURED_IMAGES)break;
     if(!isImage(file)||!file.size||file.size>MAX_IMAGE_SIZE)continue;
     const key=identity(file);
     const existing=captured.findIndex(entry=>entry.key===key);
