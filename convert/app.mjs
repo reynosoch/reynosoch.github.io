@@ -3,9 +3,10 @@ import {parseDelimited as parseCsv,detectTable,repairSingleColumn} from './tabul
 import {worksheetXml} from './sheet-layout.mjs';
 import {reviewTable} from './table-review.mjs';
 import {buildZipArchive,inspectZipBlob,inferArchiveName,extractDataTransferFiles} from './zip-engine.mjs';
+import {estimateFolderTokenStats,generateTokenSavingArtifacts,reviewZipTokenOptions} from './zip-token-engine.mjs';
 
 const $=id=>document.getElementById(id);
-const state={files:[],format:'pdf',results:[]};
+const state={files:[],format:'pdf',results:[],zipTokenConfig:{mode:'cortina',includeCurtainMirror:true}};
 const MAX_QUEUE_RENDER=120;
 const MAX_TEXT_PARSE_BYTES=32*1024*1024;
 const fmtBytes=n=>n<1024?`${n} B`:n<1048576?`${(n/1024).toFixed(1)} KB`:n<1073741824?`${(n/1048576).toFixed(1)} MB`:`${(n/1073741824).toFixed(2)} GB`;
@@ -211,6 +212,7 @@ function renderQueue(){
       e.stopPropagation();
       state.files.splice(i,1);
       renderQueue();
+      updateZipTokenUi();
       message(`${state.files.length} archivo(s) en cola.`);
     };
     row.append(badge,copy,del);
@@ -224,6 +226,27 @@ function renderQueue(){
     frag.append(more);
   }
   queue.append(frag);
+}
+
+function updateZipTokenUi(){
+  const panel=$('zip-token-panel');
+  if(!panel)return;
+  panel.hidden=state.format!=='zip';
+  document.querySelectorAll('[data-zip-mode]').forEach(btn=>{
+    btn.setAttribute('aria-pressed',String(btn.dataset.zipMode===state.zipTokenConfig.mode));
+  });
+  const statsEl=$('zip-token-stats');
+  if(!statsEl)return;
+  if(state.zipTokenConfig.mode==='standard'){
+    statsEl.textContent='Modo ZIP estándar · Empaqueta los archivos sin índice de ahorro de tokens.';
+    return;
+  }
+  const stats=estimateFolderTokenStats(state.files);
+  if(!stats.totalFiles){
+    statsEl.textContent='Archivos 100% intactos · Ahorro estimado hasta 85% de tokens en Claude.';
+  }else{
+    statsEl.textContent=`${stats.totalFiles.toLocaleString('es-MX')} archivo(s) 100% intactos · ~${stats.rawTokens.toLocaleString('es-MX')} → ~${stats.indexedTokens.toLocaleString('es-MX')} tok (-${stats.savedPercent}% tokens).`;
+  }
 }
 
 function addFiles(list,options={}){
@@ -247,6 +270,7 @@ function addFiles(list,options={}){
     chooseFormat('zip');
   }
   renderQueue();
+  updateZipTokenUi();
   const folderHint=hasFolderPaths?' · Salida ZIP lista para empaquetar carpeta':'';
   message(`${incoming.length.toLocaleString('es-MX')} archivo(s) agregados · ${fmtBytes(total)} en cola${folderHint}.`,Boolean(!incoming.length&&all.length));
 }
@@ -255,6 +279,7 @@ function chooseFormat(format){
   state.format=format;
   document.querySelectorAll('[data-format]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.format===format)));
   $('output-format').value=format;
+  updateZipTokenUi();
 }
 
 function clearResults(){
@@ -272,10 +297,27 @@ async function convertAll(){
 
   if(state.format==='zip'){
     try{
+      const choice=await reviewZipTokenOptions(state.files,state.zipTokenConfig);
+      if(!choice){
+        message('Empaquetado ZIP cancelado.');
+        $('convert').disabled=false;
+        setProgress(0);
+        return;
+      }
+      state.zipTokenConfig=choice;
+      updateZipTokenUi();
       const archiveName=inferArchiveName(state.files);
+      let entriesToPack=state.files;
+      let tokenBadge='';
+      if(choice.mode==='cortina'){
+        message(`Generando índice Cortina de ahorro de tokens para ${state.files.length.toLocaleString('es-MX')} archivo(s)…`);
+        const {extraEntries,stats}=await generateTokenSavingArtifacts(state.files,choice);
+        entriesToPack=[...extraEntries,...state.files];
+        tokenBadge=` · Cortina Claude (~${stats.indexTokens.toLocaleString('es-MX')} tok índice)`;
+      }
       message(`Empacando ${state.files.length.toLocaleString('es-MX')} archivo(s) en ${archiveName}…`);
       let lastTick=0;
-      const blob=await buildZipArchive(state.files,info=>{
+      const blob=await buildZipArchive(entriesToPack,info=>{
         const now=performance.now();
         if(now-lastTick>45||info.index===info.totalFiles){
           lastTick=now;
@@ -285,11 +327,11 @@ async function convertAll(){
       });
       const url=URL.createObjectURL(blob);
       state.results.push({name:archiveName,blob,url});
-      addResult(archiveName,blob,url,null,`${state.files.length.toLocaleString('es-MX')} archivo${state.files.length===1?'':'s'} en ZIP`);
+      addResult(archiveName,blob,url,null,`${state.files.length.toLocaleString('es-MX')} archivo${state.files.length===1?'':'s'} en ZIP${tokenBadge}`);
       $('convert').disabled=false;
       $('download-all').disabled=false;
       setProgress(100);
-      message(`${archiveName} listo (${fmtBytes(blob.size)} · ${state.files.length.toLocaleString('es-MX')} archivo${state.files.length===1?'':'s'}). Procesado localmente.`,false);
+      message(`${archiveName} listo (${fmtBytes(blob.size)} · ${state.files.length.toLocaleString('es-MX')} archivo${state.files.length===1?'':'s'} intactos${tokenBadge}). Procesado localmente.`,false);
     }catch(error){
       addError('Archivo ZIP',error?.message||String(error));
       $('convert').disabled=false;
@@ -382,8 +424,19 @@ for(const type of ['dragleave','drop'])$('dropzone').addEventListener(type,async
 });
 document.addEventListener('paste',e=>{const files=[...(e.clipboardData?.files||[])];if(files.length)addFiles(files)});
 document.querySelectorAll('[data-format]').forEach(b=>b.onclick=()=>chooseFormat(b.dataset.format));
+document.querySelectorAll('[data-zip-mode]').forEach(b=>b.onclick=()=>{
+  state.zipTokenConfig.mode=b.dataset.zipMode;
+  updateZipTokenUi();
+});
+$('open-zip-token-dialog')?.addEventListener('click',async()=>{
+  const choice=await reviewZipTokenOptions(state.files,state.zipTokenConfig);
+  if(choice){
+    state.zipTokenConfig=choice;
+    updateZipTokenUi();
+  }
+});
 $('output-format').onchange=e=>chooseFormat(e.target.value);
 $('convert').onclick=convertAll;
 $('download-all').onclick=downloadAll;
-$('clear').onclick=()=>{state.files=[];renderQueue();clearResults();message('Cola limpia.');setProgress(0)};
+$('clear').onclick=()=>{state.files=[];renderQueue();clearResults();updateZipTokenUi();message('Cola limpia.');setProgress(0)};
 renderQueue();chooseFormat('pdf');document.body.dataset.ready='true';

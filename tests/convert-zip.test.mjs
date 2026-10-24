@@ -9,6 +9,12 @@ import {
   buildZipArchive,
   inspectZipBlob
 } from '../convert/zip-engine.mjs';
+import {
+  estimateBpeTokensFromText,
+  estimateFolderTokenStats,
+  extractSymbolsAndStructure,
+  generateTokenSavingArtifacts
+} from '../convert/zip-token-engine.mjs';
 
 test('WASM / Slicing-by-8 CRC-32 matches standard IEEE 802.3 checksums across chunk boundaries', async () => {
   const bytes = new TextEncoder().encode('123456789');
@@ -73,3 +79,42 @@ test('buildZipArchive packs large folders (>100 files, multiple languages, binar
   assert.equal(inspected.rows[0][0], 'path');
   assert.equal(inspected.rows[1][0], 'CarpetaPesada/mod_1/file_1.bin');
 });
+
+test('Token-Saving Cortina engine generates lossless index and compact mirror without altering original files', async () => {
+  const rsCode = `use std::collections::HashMap;\n\npub struct Engine {\n  pub id: u32,\n}\n\npub fn compute_delta(input: &[u8]) -> u32 {\n  input.len() as u32\n}\n`;
+  const pyCode = `import os\n\ndef process_batch(items):\n    return [x for x in items]\n`;
+  const f1 = new Blob([rsCode]);
+  f1.name = 'lib.rs';
+  f1.webkitRelativePath = 'Repo/src/lib.rs';
+  const f2 = new Blob([pyCode]);
+  f2.name = 'worker.py';
+  f2.webkitRelativePath = 'Repo/scripts/worker.py';
+
+  const stats = estimateFolderTokenStats([f1, f2]);
+  assert.equal(stats.totalFiles, 2);
+  assert.ok(stats.rawTokens > 15);
+  assert.ok(estimateBpeTokensFromText(rsCode) > 10);
+
+  const rsParsed = extractSymbolsAndStructure(rsCode, 'rs');
+  assert.ok(rsParsed.symbols.some(s => s.label.includes('struct Engine')));
+  assert.ok(rsParsed.symbols.some(s => s.label.includes('fn compute_delta')));
+  assert.ok(rsParsed.imports.includes('std::collections::HashMap'));
+
+  const { extraEntries } = await generateTokenSavingArtifacts([f1, f2], { includeCurtainMirror: true });
+  assert.equal(extraEntries.length, 2);
+
+  const zipBlob = await buildZipArchive([...extraEntries, f1, f2]);
+  const loaded = await JSZip.loadAsync(await zipBlob.arrayBuffer());
+
+  // Original files remain 100% bit-for-bit unmodified
+  assert.equal(await loaded.file('Repo/src/lib.rs').async('string'), rsCode);
+  assert.equal(await loaded.file('Repo/scripts/worker.py').async('string'), pyCode);
+
+  // Cortina index and compact mirror are present at root
+  const indexMd = await loaded.file('00_CLAUDE_CONTEXT_INDEX.md').async('string');
+  const curtainTxt = await loaded.file('01_CLAUDE_CORTINA_COMPACT.txt').async('string');
+  assert.match(indexMd, /Repo\/src\/lib\.rs/);
+  assert.match(indexMd, /compute_delta/);
+  assert.match(curtainTxt, /process_batch/);
+});
+

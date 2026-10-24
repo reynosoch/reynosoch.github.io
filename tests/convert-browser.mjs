@@ -173,16 +173,17 @@ try{
   assert.match(tsvText,/name\trole/);
   assert.match(tsvText,/Javier\tdev/);
 
-  // Quick access ZIP button + heavy folder (>100 files, multiple languages & binaries) → .zip
+  // Quick access ZIP button + heavy folder (>100 files, multiple languages & binaries) → .zip with Token-Saving Cortina panel
   await page.click('#clear');
   assert.equal(await page.locator('[data-format="zip"]').isVisible(),true);
   await page.click('[data-format="zip"]');
   assert.equal(await page.locator('#output-format').inputValue(),'zip');
+  assert.equal(await page.locator('#zip-token-panel').isVisible(),true);
   await page.evaluate(()=>{
     const dt=new DataTransfer();
     for(let i=1;i<=135;i++){
       const ext=i%3===0?'rs':i%2===0?'go':'bin';
-      const f=new File([`mod item_${i} { fn run() -> u32 { ${i} } }\n`],`mod_${i}.${ext}`,{type:'application/octet-stream'});
+      const f=new File([`pub fn item_${i}() -> u32 { ${i} }\n`],`mod_${i}.${ext}`,{type:'application/octet-stream'});
       Object.defineProperty(f,'webkitRelativePath',{value:`ProyectoPesado/src/sub_${i%5}/mod_${i}.${ext}`});
       dt.items.add(f);
     }
@@ -193,6 +194,8 @@ try{
   assert.equal(await page.locator('#window-count').innerText(),'135 archivos');
   assert.equal(await page.locator('#output-format').inputValue(),'zip');
   await page.click('#convert');
+  await page.locator('#zip-token-dialog[open]').waitFor();
+  await page.locator('#zip-token-confirm').click();
   await page.waitForFunction(()=>document.querySelectorAll('#results .result-card').length===1&&!document.querySelector('#convert').disabled);
   assert.match(await page.locator('#results').innerText(),/ProyectoPesado\.zip/);
   assert.match(await page.locator('#results').innerText(),/135 archivos en ZIP/);
@@ -201,8 +204,10 @@ try{
   const folderZipDownload=await zipDownload,folderZipPath=await folderZipDownload.path();
   assert.equal(folderZipDownload.suggestedFilename(),'ProyectoPesado.zip');
   const packedFolder=await JSZip.loadAsync(await readFile(folderZipPath));
-  assert.equal(Object.keys(packedFolder.files).filter(k=>!packedFolder.files[k].dir).length,135);
-  assert.match(await packedFolder.file('ProyectoPesado/src/sub_3/mod_3.rs').async('text'),/item_3/);
+  assert(packedFolder.file('00_CLAUDE_CONTEXT_INDEX.md'));
+  assert(packedFolder.file('01_CLAUDE_CORTINA_COMPACT.txt'));
+  assert.match(await packedFolder.file('00_CLAUDE_CONTEXT_INDEX.md').async('text'),/item_3/);
+  assert.match(await packedFolder.file('ProyectoPesado/src/sub_3/mod_3.rs').async('text'),/pub fn item_3\(\) -> u32 \{ 3 \}/);
 
   assert.deepEqual(errors,[]);
   console.log('Convert browser: extracción y edición directa de texto de imagen + PDF Studio + uploader Mac + CSV→XLSX + TXT→DOCX/PDF + JSON→TSV + Carpeta→ZIP verificados.');

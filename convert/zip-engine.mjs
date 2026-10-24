@@ -553,3 +553,4 @@ export async function extractDataTransferFiles(dataTransfer) {
 
   return { files: collected.length ? collected : directFiles, hasDirectory };
 }
+
