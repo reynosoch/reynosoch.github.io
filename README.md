@@ -22,11 +22,11 @@ LAB → probar → aprender → descartar o adoptar → Toolchain / proyecto / f
 
 Los proyectos externos no se copian aquí. LAB conserva su registro y sus notas; Toolchain recibe únicamente una herramienta cuando ya demostró ser útil y merece mantenimiento propio.
 
-La portada es un acceso de trabajo, con el mismo sistema Liquid Glass de LAB: superficies translúcidas, brillo interno, profundidad, radios y navegación compartidos. Toolchain conserva el acento naranja y usa iconos locales seleccionados de Lucide 1.55.0; su licencia vive en `shared/LUCIDE_LICENSE.txt`. No es un portfolio. **Brief, Drop, Transcribe, Audio Lab, Snippets, Shot, Convert, Cutout y Jot están LISTO**; las otras **16 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
+La portada es un acceso de trabajo, con el mismo sistema Liquid Glass de LAB: superficies translúcidas, brillo interno, profundidad, radios y navegación compartidos. Toolchain conserva el acento naranja y usa iconos locales seleccionados de Lucide 1.55.0; su licencia vive en `shared/LUCIDE_LICENSE.txt`. No es un portfolio. **Brief, Drop, Transcribe, Audio Lab, Snippets, Shot, Convert, Cutout, Clip y Jot están LISTO**; las otras **16 herramientas están EN DESARROLLO** y presentan un alcance futuro, sin simular acciones ni cargar librerías de procesamiento.
 
 ## Accesos directos para favoritos
 
-La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta con `index.html` y una URL estable; no depende de query strings ni de routing SPA. El título de cada pestaña es **`<Herramienta> · Reynoso Toolchain`**. Drop, Transcribe, Audio Lab, Snippets, Shot, Convert y Cutout, todos los placeholders, sus headers y sus accesos de regreso llevan al landing.
+La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta con `index.html` y una URL estable; no depende de query strings ni de routing SPA. El título de cada pestaña es **`<Herramienta> · Reynoso Toolchain`**. Drop, Transcribe, Audio Lab, Snippets, Shot, Convert, Cutout y Clip, todos los placeholders, sus headers y sus accesos de regreso llevan al landing.
 
 <!-- TOOLCHAIN_CATALOG_START -->
 | Herramienta | Estado | URL | Propósito |
@@ -45,6 +45,7 @@ La raíz es `https://reynosoch.github.io/`. Cada herramienta tiene una carpeta c
 | Regex | EN DESARROLLO | [Abrir Regex](https://reynosoch.github.io/regex/) | Comprueba el patrón antes de usarlo. |
 | Code Lab | EN DESARROLLO | [Abrir Code Lab](https://reynosoch.github.io/code/) | Código listo para copiar o compartir. |
 | Cutout | LISTO | [Abrir Cutout](https://reynosoch.github.io/cutout/) | Elimina fondos y genera un PNG transparente. |
+| Clip | LISTO | [Abrir Clip](https://reynosoch.github.io/clip/) | Edita video y extrae fotogramas clave. |
 | Image Lab | EN DESARROLLO | [Abrir Image Lab](https://reynosoch.github.io/image/) | Edita y prepara imágenes para distintos usos. |
 | Audio Lab | LISTO | [Abrir Audio Lab](https://reynosoch.github.io/audio/) | Prepara grabaciones para su uso en Transcribe. |
 | PDF Lab | EN DESARROLLO | [Abrir PDF Lab](https://reynosoch.github.io/pdf/) | Las páginas que necesitas, en orden. |
@@ -68,11 +69,11 @@ Recientes aparece al usar herramientas y conserva el orden entre sesiones. Debaj
 | Uso diario | Drop, Transcribe, Shot; accesos destacados a Inspect, Diff y Context |
 | Datos | Inspect, Diff, Clean, SQL Lab |
 | Desarrollo | Context, Prompt, JSON Lab, API Lab, Regex, Code Lab |
-| Archivos | Cutout, Convert, Image Lab, Audio Lab, PDF Lab |
+| Archivos | Cutout, Clip, Convert, Image Lab, Audio Lab, PDF Lab |
 | Utilidades | Encode, QR |
 | Personal | Error Vault, Snippets, Projects |
 
-Inspect, Diff y Context se muestran en Uso diario; las secciones Datos y Desarrollo indican dónde están sin crear otra tarjeta. La búsqueda y los filtros de estado incluyen las 23 herramientas.
+Inspect, Diff y Context se muestran en Uso diario; las secciones Datos y Desarrollo indican dónde están sin crear otra tarjeta. La búsqueda y los filtros de estado incluyen las 25 herramientas.
 
 ## Recientes reales
 
@@ -80,6 +81,7 @@ La portada mueve las tarjetas usadas a **Recientes**, por último uso (más reci
 
 ## Herramientas listas
 
+- **[Clip](https://reynosoch.github.io/clip/)**: edición y recorte local de video, ajuste de velocidad, silenciado, rotación, atajos y extracción rápida del primer fotograma, el último o cualquier posición del video en PNG de alta resolución. [Documentación de Clip](clip/README.md).
 - **[Cutout](https://reynosoch.github.io/cutout/)**: recorte local de fondos con ISNet FP16, complemento para logos/letras, antes/después, bordes/halos/partículas, pincel de máscara, PNG/WebP, copia y lotes ZIP. Modelo bajo demanda, sin subir imágenes. [Documentación y límites](cutout/README.md).
 - **[Convert](https://reynosoch.github.io/convert/)**: conversión de documentos, imágenes y texto y PDF Studio. [Documentación](convert/README.md).
 

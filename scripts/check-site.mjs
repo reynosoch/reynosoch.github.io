@@ -40,7 +40,7 @@ for (const relativePath of ['index.html',...tools.map(tool=>`${tool.id}/index.ht
     }
   }
 }
-for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data','audio','audio/vendor','shot','shot/editor','shot/media','shot/ui','shot/vendor','convert','cutout','cutout/vendor','brief']) {
+for (const directory of ['drop','transcribe','transcribe/vendor','shared','snippets','snippets/lib','snippets/data','audio','audio/vendor','shot','shot/editor','shot/media','shot/ui','shot/vendor','convert','cutout','cutout/vendor','brief','clip']) {
   for (const name of await readdir(resolve(root,directory))) {
     if (!/\.(?:m?js)$/.test(name)) continue;
       const source=resolve(root,directory,name), content=await readFile(source,'utf8');

@@ -28,6 +28,13 @@ export const workspaceTools = [
     "family": "toolchain"
   },
   {
+    "id": "clip",
+    "name": "Clip",
+    "summary": "Edita video y extrae fotogramas clave.",
+    "keywords": "Recorte de inicio y fin, velocidad, rotación y silenciado Descarga y copia rápida del primer y último fotograma Copia de cualquier fotograma al portapapeles en alta resolución Exportación local de video sin subir archivos a servidores Descargar el primer y último frame para dar continuidad a una secuencia en un generador de video. Copiar un fotograma clave al portapapeles con un solo clic. Recortar un clip y ajustar su velocidad antes de compartirlo.",
+    "family": "toolchain"
+  },
+  {
     "id": "audio",
     "name": "Audio Lab",
     "summary": "Prepara grabaciones para su uso en Transcribe.",

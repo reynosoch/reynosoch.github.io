@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0f1014"><meta name="description" content="Edita video en tu navegador, recorta segmentos y extrae fotogramas clave para flujos de generación y continuidad."><title>Clip · Reynoso Toolchain</title><link rel="canonical" href="https://reynosoch.github.io/clip/"><link rel="icon" href="../favicon.svg"><link rel="stylesheet" href="../hub.css"><link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="../shared/portal.css?v=workspaces-2"></head>
+<body class="toolchain-body" data-portal="clip" data-family="toolchain"><div class="ambient" aria-hidden="true"></div><a class="skip-link" href="#main">Ir a Clip</a>
+<header class="clip-header glass"><a href="../" class="home"><span class="brand-mark">r.</span> Toolchain</a><div><strong>CLIP<span>.</span></strong><small>EDITOR / FOTOGRAMAS CLAVE</small></div><a href="https://github.com/reynosoch/reynosoch.github.io/tree/main/clip" target="_blank" rel="noopener noreferrer" class="source-link">Código y notas</a></header>
+<main id="main">
+<section class="intro"><div><p class="section-kicker">EDICIÓN Y FOTOGRAMAS CLAVE</p><h1>El fotograma exacto.<br><span>El corte preciso.</span></h1><p>Edite, recorte y extraiga el primer y último fotograma para flujos continuos de generación y extensión de secuencias.</p></div><div class="privacy glass"><span data-icon="clip"></span><strong>Procesamiento en este dispositivo.</strong><p>Tus videos se procesan de forma local en el navegador, sin subirse a ningún servidor.</p></div></section>
+
+<div class="workspace">
+  <aside class="sidebar">
+    <!-- Dropzone / Input -->
+    <section id="dropzone" class="panel glass dropzone">
+      <span data-icon="clip"></span>
+      <h2>Cargar video</h2>
+      <p>Arrastre, seleccione o pegue un video con Ctrl + V.</p>
+      <button id="pick-video" class="primary" data-button-icon="circle-plus">Elegir archivo</button>
+      <input id="video-file-input" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,video/ogg" hidden>
+      <small>MP4 · WebM · MOV · MKV<br>Procesamiento directo en memoria</small>
+    </section>
+
+    <!-- Video Info Panel -->
+    <section id="video-info-panel" class="panel glass info-panel" hidden>
+      <div class="panel-heading">
+        <h2 id="video-title">Detalles del video</h2>
+        <button id="change-video" class="subtle-btn">Cambiar</button>
+      </div>
+      <div class="specs-grid">
+        <div class="spec-item"><span class="spec-label">Resolución</span><strong id="spec-resolution">—</strong></div>
+        <div class="spec-item"><span class="spec-label">Duración</span><strong id="spec-duration">—</strong></div>
+        <div class="spec-item"><span class="spec-label">Tamaño</span><strong id="spec-size">—</strong></div>
+        <div class="spec-item"><span class="spec-label">Fotogramas</span><strong id="spec-frames">—</strong></div>
+      </div>
+    </section>
+
+    <!-- Editing Controls Panel -->
+    <section id="tools-panel" class="panel glass tools-panel" hidden>
+      <div class="panel-heading">
+        <h2>Edición y ajustes</h2>
+      </div>
+
+      <!-- Trim Controls -->
+      <div class="control-group">
+        <label class="group-title">Rango de recorte (Inicio / Fin)</label>
+        <div class="trim-inputs">
+          <div class="trim-field">
+            <span>Inicio:</span>
+            <input type="number" id="trim-start-input" min="0" step="0.01" value="0.00">
+            <button id="set-in-point" title="Fijar inicio en posición actual" class="icon-action">[</button>
+          </div>
+          <div class="trim-field">
+            <span>Fin:</span>
+            <input type="number" id="trim-end-input" min="0" step="0.01" value="0.00">
+            <button id="set-out-point" title="Fijar fin en posición actual" class="icon-action">]</button>
+          </div>
+        </div>
+        <div class="trim-summary">
+          <span id="trim-duration-badge">Duración corte: —</span>
+          <button id="reset-trim" class="subtle-btn">Restablecer</button>
+        </div>
+      </div>
+
+      <!-- Playback Speed -->
+      <div class="control-group">
+        <label for="speed-select" class="group-title">Velocidad de reproducción</label>
+        <select id="speed-select">
+          <option value="0.25">0.25x (Cámara lenta)</option>
+          <option value="0.5">0.5x</option>
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1.0x (Normal)</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2.0x (Rápido)</option>
+        </select>
+      </div>
+
+      <!-- Audio Options -->
+      <div class="control-group">
+        <label class="group-title">Audio</label>
+        <div class="audio-toggles">
+          <button id="toggle-mute" class="toggle-btn" aria-pressed="false">Audio activado</button>
+          <label class="volume-slider-label">Volumen <output id="volume-val">100%</output>
+            <input type="range" id="volume-slider" min="0" max="100" value="100">
+          </label>
+        </div>
+      </div>
+
+      <!-- Transform: Rotate & Flip -->
+      <div class="control-group">
+        <label class="group-title">Orientación y rotación</label>
+        <div class="btn-cluster">
+          <button id="rotate-left-btn" class="compact-btn" title="Rotar 90° izquierda">↺ 90°</button>
+          <button id="rotate-right-btn" class="compact-btn" title="Rotar 90° derecha">↻ 90°</button>
+          <button id="flip-h-btn" class="compact-btn" title="Reflejo horizontal">Espejo</button>
+          <button id="reset-transform-btn" class="subtle-btn">0°</button>
+        </div>
+      </div>
+
+      <!-- Export Video Section -->
+      <div class="control-group export-video-group">
+        <label class="group-title">Exportar video procesado</label>
+        <p class="muted">Genera el video con el recorte y ajustes aplicados.</p>
+        <button id="export-video-btn" class="primary" data-button-icon="arrow-down">Descargar video recortado</button>
+        <progress id="export-video-progress" max="100" value="0" hidden></progress>
+        <p id="export-video-status" class="status-text" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </aside>
+
+  <!-- Main Player & Keyframe Area -->
+  <section class="main-stage">
+
+    <!-- Continuity Keyframes Card Banner (FIRST & LAST FRAME DEDICATED SUITE) -->
+    <section id="keyframe-suite" class="panel glass keyframe-suite" hidden>
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">FLUJO DE CONTINUIDAD</p>
+          <h2>Fotogramas clave de inicio y fin</h2>
+        </div>
+        <button id="download-both-frames" class="primary" data-button-icon="arrow-down">Descargar ambos fotogramas (Inicio + Fin)</button>
+      </div>
+
+      <div class="frames-grid">
+        <!-- Primer Fotograma -->
+        <article class="frame-card glass">
+          <div class="frame-card-head">
+            <span class="badge-tag">Primer fotograma</span>
+            <span id="first-frame-time" class="time-tag">00:00.00</span>
+          </div>
+          <div class="frame-preview-box">
+            <canvas id="first-frame-canvas" class="frame-canvas" width="320" height="180"></canvas>
+            <div id="first-frame-loading" class="frame-spinner" hidden>Cargando...</div>
+          </div>
+          <div class="frame-actions">
+            <button id="copy-first-frame" class="action-btn" data-button-icon="copy">Copiar fotograma</button>
+            <button id="download-first-frame" class="action-btn" data-button-icon="arrow-down">Descargar PNG</button>
+            <button id="seek-first-frame" class="subtle-btn">Ir al inicio</button>
+          </div>
+        </article>
+
+        <!-- Fotograma Actual / Cursor -->
+        <article class="frame-card glass current-frame-card">
+          <div class="frame-card-head">
+            <span class="badge-tag live-badge">Fotograma actual</span>
+            <span id="current-frame-time" class="time-tag">00:00.00</span>
+          </div>
+          <div class="frame-preview-box">
+            <canvas id="current-frame-canvas" class="frame-canvas" width="320" height="180"></canvas>
+          </div>
+          <div class="frame-actions">
+            <button id="copy-current-frame" class="action-btn" data-button-icon="copy">Copiar este fotograma</button>
+            <button id="download-current-frame" class="action-btn" data-button-icon="arrow-down">Descargar PNG</button>
+          </div>
+        </article>
+
+        <!-- Último Fotograma -->
+        <article class="frame-card glass">
+          <div class="frame-card-head">
+            <span class="badge-tag">Último fotograma</span>
+            <span id="last-frame-time" class="time-tag">00:00.00</span>
+          </div>
+          <div class="frame-preview-box">
+            <canvas id="last-frame-canvas" class="frame-canvas" width="320" height="180"></canvas>
+            <div id="last-frame-loading" class="frame-spinner" hidden>Cargando...</div>
+          </div>
+          <div class="frame-actions">
+            <button id="copy-last-frame" class="action-btn" data-button-icon="copy">Copiar fotograma</button>
+            <button id="download-last-frame" class="action-btn" data-button-icon="arrow-down">Descargar PNG</button>
+            <button id="seek-last-frame" class="subtle-btn">Ir al final</button>
+          </div>
+        </article>
+      </div>
+      <p id="keyframe-notice" class="keyframe-notice" role="status" aria-live="polite">Pega o descarga los fotogramas para continuar secuencias de video con generadores externos.</p>
+    </section>
+
+    <!-- Video Canvas Stage -->
+    <section class="player-panel panel glass">
+      <div id="player-empty" class="player-empty">
+        <span data-icon="clip"></span>
+        <p>Carga un video para comenzar a editar y extraer fotogramas.</p>
+      </div>
+
+      <div id="player-container" class="player-container" hidden>
+        <!-- The visual preview container -->
+        <div id="video-wrapper" class="video-wrapper">
+          <video id="source-video" preload="auto" playsinline></video>
+        </div>
+
+        <!-- Custom Scrubber and Timeline -->
+        <div class="timeline-container">
+          <div class="timeline-ruler">
+            <div id="trim-range-visual" class="trim-range-visual"></div>
+            <div id="playhead-marker" class="playhead-marker"></div>
+            <input type="range" id="timeline-slider" min="0" max="100" value="0" step="0.001">
+          </div>
+
+          <div class="timeline-meta">
+            <span id="timecode-display" class="timecode">00:00.00 / 00:00.00</span>
+            <span id="frame-counter" class="frame-counter">Frame 0 / 0</span>
+          </div>
+        </div>
+
+        <!-- Transport & Precision Step Controls -->
+        <div class="transport-bar">
+          <div class="transport-group">
+            <button id="step-back-btn" class="transport-btn" title="Retroceder 1 fotograma (←)">◂| Frame</button>
+            <button id="play-pause-btn" class="transport-btn primary-transport" title="Reproducir / Pausar (Espacio)">▶ Reproducir</button>
+            <button id="step-fwd-btn" class="transport-btn" title="Avanzar 1 fotograma (→)">|▸ Frame</button>
+            <button id="loop-btn" class="transport-btn toggle-btn" aria-pressed="true" title="Repetición continua">Bucle</button>
+          </div>
+
+          <div class="transport-quick-keyframes">
+            <button id="quick-copy-btn" class="transport-btn" title="Copiar fotograma en pantalla (C)">Copiar frame actual</button>
+            <button id="quick-snap-btn" class="transport-btn" title="Descargar fotograma en pantalla">Capturar frame</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Help & Keyboard Shortcuts Reference -->
+    <details class="shortcuts-card glass">
+      <summary>Atajos de teclado para edición rápida</summary>
+      <div class="shortcuts-grid">
+        <div><kbd>Espacio</kbd><span>Reproducir / Pausar</span></div>
+        <div><kbd>←</kbd> / <kbd>→</kbd><span>Retroceder / Avanzar 1 fotograma</span></div>
+        <div><kbd>[</kbd><span>Fijar punto de inicio del corte</span></div>
+        <div><kbd>]</kbd><span>Fijar punto de fin del corte</span></div>
+        <div><kbd>C</kbd><span>Copiar fotograma actual al portapapeles</span></div>
+        <div><kbd>1</kbd><span>Saltar al primer fotograma</span></div>
+        <div><kbd>2</kbd><span>Saltar al último fotograma</span></div>
+      </div>
+    </details>
+
+  </section>
+</div>
+
+<footer class="hub-footer"><a href="../">REYNOSO TOOLCHAIN</a><span>Edición local y extracción de fotogramas clave.</span></footer>
+</main>
+
+<script type="module" src="./app.mjs"></script>
+<script type="module" src="../shared/recent-use.mjs"></script>
+<script type="module" src="../shared/workspace.mjs?v=2"></script>
+</body></html>
