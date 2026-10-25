@@ -47,3 +47,22 @@ if(header&&!document.getElementById('workspace-open')){
   list.addEventListener('keydown',e=>{if(!['ArrowDown','ArrowUp'].includes(e.key))return;const links=[...list.querySelectorAll('a')],at=links.indexOf(document.activeElement);if(at<0)return;e.preventDefault();const next=at+(e.key==='ArrowDown'?1:-1);if(next<0)search.focus();else links[Math.min(next,links.length-1)]?.focus();});
   document.addEventListener('keydown',e=>{if(e.altKey&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&e.key.toLowerCase()==='k'){e.preventDefault();dialog.open?dialog.close():open();}});
 }
+
+const hubFooter = document.querySelector('.hub-footer');
+if (hubFooter && !hubFooter.querySelector('.footer-commit')) {
+  const brandLink = hubFooter.querySelector('a:first-child');
+  if (brandLink) {
+    const wrap = document.createElement('div');
+    wrap.className = 'hub-footer-left';
+    brandLink.replaceWith(wrap);
+    wrap.appendChild(brandLink);
+    const commitBadge = document.createElement('a');
+    commitBadge.className = 'footer-commit';
+    commitBadge.href = 'https://github.com/reynosoch/reynosoch.github.io/commit/6844cee';
+    commitBadge.target = '_blank';
+    commitBadge.rel = 'noopener noreferrer';
+    commitBadge.title = 'Ver versión en GitHub';
+    commitBadge.innerHTML = '<span class="commit-dot" aria-hidden="true"></span>6844cee';
+    wrap.appendChild(commitBadge);
+  }
+}

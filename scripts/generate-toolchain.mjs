@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { tools, categories, dailyOrder, statusLabel } from '../shared/catalog.mjs';
+import { tools, categories, dailyOrder, statusLabel, currentCommit } from '../shared/catalog.mjs';
 import { icon } from '../shared/icons.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const checking=process.argv.includes('--check');
@@ -15,7 +15,7 @@ const repo='https://github.com/reynosoch/reynosoch.github.io';
 const lab='https://reynosoch.github.io/reynoso-lab/';
 const badge=tool=>`<span class="state ${tool.ready?'is-ready':'is-dev'}"><i aria-hidden="true"></i>${statusLabel(tool)}</span>`;
 const header=prefix=>`<a class="skip-link" href="#main">Ir al contenido</a><header class="hub-header glass"><a class="hub-brand" href="${prefix}"><span class="brand-mark" aria-hidden="true">r.</span><span>reynoso <b>/</b> <strong>toolchain</strong></span></a><nav aria-label="Navegación principal"><a class="header-link" href="${prefix}#daily">Uso diario</a><a class="header-link" href="${lab}">LAB ${icon('external-link','ui-icon')}</a><a class="repo-link" href="${repo}" target="_blank" rel="noopener noreferrer" aria-label="Repositorio de Reynoso Toolchain en GitHub">GitHub ${icon('external-link','ui-icon')}</a></nav></header>`;
-const footer=prefix=>`<footer class="hub-footer"><a href="${prefix}">REYNOSO TOOLCHAIN</a><span>Abrir. Resolver. Continuar.</span><a href="https://github.com/reynosoch" target="_blank" rel="noopener noreferrer">/reynosoch ${icon('external-link','ui-icon')}</a></footer>`;
+const footer=prefix=>`<footer class="hub-footer"><div class="hub-footer-left"><a href="${prefix}">REYNOSO TOOLCHAIN</a><a class="footer-commit" href="${repo}/commit/${currentCommit}" target="_blank" rel="noopener noreferrer" title="Ver versión en GitHub"><span class="commit-dot" aria-hidden="true"></span>${currentCommit}</a></div><span>Abrir. Resolver. Continuar.</span><a href="https://github.com/reynosoch" target="_blank" rel="noopener noreferrer">/reynosoch ${icon('external-link','ui-icon')}</a></footer>`;
 const head=(title,description,prefix,route='')=>`<!doctype html>\n<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#0f1014"><meta name="description" content="${escape(description)}"><link rel="canonical" href="https://reynosoch.github.io/${route}"><title>${escape(title)}</title><link rel="icon" href="${prefix}favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="${prefix}hub.css?v=liquid-glass"><link rel="stylesheet" href="${prefix}shared/portal.css?v=workspaces-2"></head>`;
 const lookup=id=>tools.find(tool=>tool.id===id);
 const cardAttributes=tool=>`data-tool="${tool.id}" data-family="${tool.name.endsWith(' Lab')?'lab':'toolchain'}" data-ready="${Boolean(tool.ready)}" data-search="${escape([tool.name,tool.summary,tool.purpose,...tool.features,...tool.examples].join(' '))}"`;

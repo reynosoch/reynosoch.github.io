@@ -83,6 +83,10 @@ body[data-portal] :is(.section-kicker,.eyebrow) { color: var(--subtle); letter-s
 body[data-portal] .state { font-size: 9px; letter-spacing: .05em; background: #ffffff06; border-color: #626b73; color: var(--muted); }
 body[data-portal] .is-ready { color: var(--accent); border-color: var(--line-accent); background: var(--accent-soft); }
 body[data-portal] .hub-footer { font-size: 12px; color: var(--subtle); }
+body[data-portal] .hub-footer-left { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+body[data-portal] .footer-commit { display: inline-flex; align-items: center; gap: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: var(--muted); background: #ffffff0a; border: 1px solid var(--line); padding: 3px 8px; border-radius: 6px; text-decoration: none; font-variant-numeric: tabular-nums; }
+body[data-portal] .footer-commit:hover { color: var(--accent); border-color: var(--line-accent); background: var(--accent-soft); }
+body[data-portal] .commit-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; box-shadow: 0 0 6px var(--accent); }
 [hidden] { display: none!important; }
 
 /* 00 / DIRECTORY: typographic masthead, quick access, then an indexed catalogue. */

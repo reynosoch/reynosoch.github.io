@@ -37,3 +37,5 @@ export const tools = [
 ];
 export const dailyOrder = ['drop','transcribe','inspect','diff','context','shot'];
 export const statusLabel = tool => tool.ready ? 'LISTO' : 'EN DESARROLLO';
+export const currentVersion = '1.3.0';
+export const currentCommit = '6844cee';
