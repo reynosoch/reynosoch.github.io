@@ -3,7 +3,10 @@ import { DEPLOYMENT_CONFIG } from './deployment-config.js';
 // belong here; never put long-lived private credentials in a public Pages site.
 export const DROP_CONFIG = Object.freeze({
   signaling: {host:'0.peerjs.com', port:443, secure:true},
-  iceServers: [{urls:'stun:stun.l.google.com:19302'}],
+  iceServers: [{urls:[
+    'stun:stun.l.google.com:19302',
+    'stun:stun.cloudflare.com:3478'
+  ]}],
   turnServers: [],
   relayUrl: DEPLOYMENT_CONFIG.relayUrl,
   relayTimeout: 8000,
